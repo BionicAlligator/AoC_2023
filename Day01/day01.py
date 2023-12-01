@@ -1,5 +1,6 @@
 TESTING = False
-OUTPUT_TO_CONSOLE = True
+PART = 2
+OUTPUT_TO_CONSOLE = False
 
 
 def log(message, end="\n"):
@@ -34,74 +35,78 @@ def read_input(filename):
     return lines
 
 
-def rreplace(s, old, new, occurrence):
-    li = s.rsplit(old, occurrence)
-    return new.join(li)
-
-
 def part1(inputs):
-    sum = 0
+    sum_of_calibration_values = 0
 
     digits = [[char for char in line if char.isdigit()] for line in inputs]
     log(digits)
 
     for line in digits:
-        num_string = line[0] + line[-1]
-        num = int(num_string)
-        sum += num
+        calibration_value_string = line[0] + line[-1]
+        calibration_value = int(calibration_value_string)
+        sum_of_calibration_values += calibration_value
 
-    return sum
+    return sum_of_calibration_values
+
 
 def part2(inputs):
-    new_inputs = []
-    digits_as_strings = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+    DIGITS_AS_STRINGS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 
-    for old_line in inputs:
-        log(f"{old_line=}")
-        line = old_line
+    parsed_inputs = []
 
-        first_match = {'pos': 999999999999}
-        last_match = {'pos': -1}
+    for orig_line in inputs:
+        log(f"{orig_line=}")
+        line = orig_line
+
+        first_match = {'pos': float('inf')}
+        last_match = {'pos': float('-inf')}
 
         new_line = line
 
-        for num in range(1, len(digits_as_strings) + 1):
-            first_num_pos = line.find(digits_as_strings[num - 1])
-            last_num_pos = line.rfind(digits_as_strings[num - 1])
+        for digit in range(1, len(DIGITS_AS_STRINGS) + 1):
+            first_digit_pos = line.find(DIGITS_AS_STRINGS[digit - 1])
+            last_digit_pos = line.rfind(DIGITS_AS_STRINGS[digit - 1])
 
-            if first_match['pos'] > first_num_pos >= 0:
-                first_match = {'pos': first_num_pos, 'num_string': digits_as_strings[num - 1], 'num': str(num)}
+            if first_match['pos'] > first_digit_pos >= 0:
+                first_match = {'pos': first_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
 
-            if last_match['pos'] < last_num_pos:
-                last_match = {'pos': last_num_pos, 'num_string': digits_as_strings[num - 1], 'num': str(num)}
+            if last_match['pos'] < last_digit_pos >= 0:
+                last_match = {'pos': last_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
 
-        if 'num_string' in first_match.keys():
-            new_line = new_line[:first_match['pos']] + first_match['num'] + new_line[first_match['pos'] + 1:]
+        if 'digit_string' in first_match.keys():
+            new_line = new_line[:first_match['pos']] + first_match['digit'] + new_line[first_match['pos'] + 1:]
 
-        if 'num_string' in last_match.keys():
-            new_line = new_line[:last_match['pos']] + last_match['num'] + new_line[last_match['pos'] + 1:]
+        if 'digit_string' in last_match.keys():
+            new_line = new_line[:last_match['pos']] + last_match['digit'] + new_line[last_match['pos'] + 1:]
 
         log(f"{new_line=}\n")
+        parsed_inputs.append(new_line)
 
-        new_inputs.append(new_line)
-
-    return part1(new_inputs)
+    return part1(parsed_inputs)
 
 
 if TESTING:
-    print("Part 1")
-    tests = read_tests("sampleInput.txt")
+    tests = read_tests("sample_input_part_" + str(PART) + ".txt")
+
+    print(f"Test Results for Part {PART}")
+
+    passed = failed = 0
 
     for expected, inputs in tests:
-        # actual = part1(inputs)
-        actual = part2(inputs)
+        actual = part1(inputs) if PART == 1 else part2(inputs)
 
         if expected == str(actual):
+            passed += 1
             print(f"Passed: {inputs} -> {actual}\n")
         else:
+            failed += 1
             print(f"Failed: {inputs} -> {actual}, expected {expected}\n")
+
+    print(f"Passed: {passed}, Failed: {failed}")
 else:
     inputs = read_input("input.txt")
 
     print("Part 1: ", part1(inputs))
-    print("Part 2: ", part2(inputs))
+
+    if PART == 2:
+        print("Part 2: ", part2(inputs))
