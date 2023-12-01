@@ -121,7 +121,7 @@ def part2(inputs):
     return part1(parsed_inputs)
 
 
-if TESTING:
+def run_tests():
     tests = read_tests("sample_input_part_" + str(PART) + ".txt")
 
     print(f"Test Results for Part {PART}")
@@ -139,10 +139,18 @@ if TESTING:
             print(f"Failed: {inputs} -> {actual}, expected {expected}\n")
 
     print(f"Passed: {passed}, Failed: {failed}")
-else:
+
+
+def run_for_real():
     inputs = read_input("input.txt")
 
     print("Part 1: ", part1(inputs))
 
     if PART == 2:
         print("Part 2: ", part2(inputs))
+
+
+if TESTING:
+    run_tests()
+else:
+    run_for_real()
