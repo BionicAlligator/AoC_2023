@@ -1,4 +1,5 @@
 TESTING = True
+PART = 1
 OUTPUT_TO_CONSOLE = True
 
 
@@ -38,18 +39,40 @@ def part1(inputs):
     return
 
 
-if TESTING:
-    print("Part 1")
-    tests = read_tests("sampleInput.txt")
+def part2(inputs):
+    return
+
+
+def run_tests():
+    tests = read_tests("sample_input_part_" + str(PART) + ".txt")
+
+    print(f"Test Results for Part {PART}")
+
+    passed = failed = 0
 
     for expected, inputs in tests:
-        actual = part1(inputs)
+        actual = part1(inputs) if PART == 1 else part2(inputs)
 
         if expected == str(actual):
+            passed += 1
             print(f"Passed: {inputs} -> {actual}\n")
         else:
+            failed += 1
             print(f"Failed: {inputs} -> {actual}, expected {expected}\n")
-else:
+
+    print(f"Passed: {passed}, Failed: {failed}")
+
+
+def run_for_real():
     inputs = read_input("input.txt")
 
     print("Part 1: ", part1(inputs))
+
+    if PART == 2:
+        print("Part 2: ", part2(inputs))
+
+
+if TESTING:
+    run_tests()
+else:
+    run_for_real()
