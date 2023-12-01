@@ -1,4 +1,4 @@
-TESTING = True
+TESTING = False
 OUTPUT_TO_CONSOLE = True
 
 
@@ -35,7 +35,17 @@ def read_input(filename):
 
 
 def part1(inputs):
-    return
+    sum = 0
+
+    digits = [[char for char in line if char.isdigit()] for line in inputs]
+    log(digits)
+
+    for line in digits:
+        num_string = line[0] + line[-1]
+        num = int(num_string)
+        sum += num
+
+    return sum
 
 
 if TESTING:
