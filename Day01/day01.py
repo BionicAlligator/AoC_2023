@@ -2,6 +2,8 @@ TESTING = False
 PART = 2
 OUTPUT_TO_CONSOLE = False
 
+DIGITS_AS_STRINGS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+
 
 def log(message, end="\n"):
     if OUTPUT_TO_CONSOLE:
@@ -35,49 +37,83 @@ def read_input(filename):
     return lines
 
 
-def part1(inputs):
-    sum_of_calibration_values = 0
+def extract_digits(inputs):
+    return [[char for char in line if char.isdigit()] for line in inputs]
 
-    digits = [[char for char in line if char.isdigit()] for line in inputs]
-    log(digits)
+
+def generate_calibration_values(digits):
+    calibration_values = []
 
     for line in digits:
         calibration_value_string = line[0] + line[-1]
-        calibration_value = int(calibration_value_string)
-        sum_of_calibration_values += calibration_value
+        calibration_values.append(int(calibration_value_string))
 
-    return sum_of_calibration_values
+    return calibration_values
+
+
+def replace_char_at_pos(string, index, new_char):
+    return string[:index] + new_char + string[index + 1:]
+
+
+def find_digit_string_first_occurrence(digit, string, first_match):
+    first_digit_pos = string.find(DIGITS_AS_STRINGS[digit - 1])
+
+    if first_match['pos'] > first_digit_pos >= 0:
+        first_match = {'pos': first_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
+
+    return first_match
+
+
+def find_digit_string_last_occurrence(digit, string, last_match):
+    last_digit_pos = string.rfind(DIGITS_AS_STRINGS[digit - 1])
+
+    if last_match['pos'] < last_digit_pos >= 0:
+        last_match = {'pos': last_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
+
+    return last_match
+
+
+def replace_first_digit_string_if_any(string):
+    first_match = {'pos': float('inf')}
+
+    for digit in range(1, len(DIGITS_AS_STRINGS) + 1):
+        first_match = find_digit_string_first_occurrence(digit, string, first_match)
+
+    if 'digit_string' in first_match.keys():
+        return replace_char_at_pos(string, first_match['pos'], first_match['digit'])
+
+    return string
+
+
+def replace_last_digit_string_if_any(string):
+    last_match = {'pos': float('-inf')}
+
+    for digit in range(1, len(DIGITS_AS_STRINGS) + 1):
+        last_match = find_digit_string_last_occurrence(digit, string, last_match)
+
+    if 'digit_string' in last_match.keys():
+        return replace_char_at_pos(string, last_match['pos'], last_match['digit'])
+
+    return string
+
+
+def part1(inputs):
+    digits = extract_digits(inputs)
+    log(digits)
+
+    calibration_values = generate_calibration_values(digits)
+
+    return sum(calibration_values)
 
 
 def part2(inputs):
-    DIGITS_AS_STRINGS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
-
     parsed_inputs = []
 
     for orig_line in inputs:
         log(f"{orig_line=}")
-        line = orig_line
 
-        first_match = {'pos': float('inf')}
-        last_match = {'pos': float('-inf')}
-
-        new_line = line
-
-        for digit in range(1, len(DIGITS_AS_STRINGS) + 1):
-            first_digit_pos = line.find(DIGITS_AS_STRINGS[digit - 1])
-            last_digit_pos = line.rfind(DIGITS_AS_STRINGS[digit - 1])
-
-            if first_match['pos'] > first_digit_pos >= 0:
-                first_match = {'pos': first_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
-
-            if last_match['pos'] < last_digit_pos >= 0:
-                last_match = {'pos': last_digit_pos, 'digit_string': DIGITS_AS_STRINGS[digit - 1], 'digit': str(digit)}
-
-        if 'digit_string' in first_match.keys():
-            new_line = new_line[:first_match['pos']] + first_match['digit'] + new_line[first_match['pos'] + 1:]
-
-        if 'digit_string' in last_match.keys():
-            new_line = new_line[:last_match['pos']] + last_match['digit'] + new_line[last_match['pos'] + 1:]
+        new_line = replace_first_digit_string_if_any(orig_line)
+        new_line = replace_last_digit_string_if_any(new_line)
 
         log(f"{new_line=}\n")
         parsed_inputs.append(new_line)
