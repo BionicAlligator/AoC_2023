@@ -4,6 +4,8 @@ TESTING = False
 PART = 2
 OUTPUT_TO_CONSOLE = True
 
+CUBES_CONSTRAINT = {'red': 12, 'green': 13, 'blue': 14}
+
 
 def log(message, end="\n"):
     if OUTPUT_TO_CONSOLE:
@@ -43,24 +45,24 @@ def extract_game_info(inputs):
     for game in inputs:
         game_regex = re.compile(r'Game (\d+):(.*)')
         game_info = game_regex.search(game)
-        game_ID = int(game_info.group(1))
+        game_id = int(game_info.group(1))
         draw_details = game_info.group(2).split(";")
 
         draws = []
         for draw in draw_details:
-            dice = draw.split(",")
+            cubes = draw.split(",")
 
             draw = {}
-            for die_type in dice:
-                die_regex = re.compile(r'(\d+) ([a-z]+)')
-                die_info = die_regex.search(die_type)
-                num_dice, colour = die_info.groups()
+            for cube_type in cubes:
+                cube_regex = re.compile(r'(\d+) ([a-z]+)')
+                cube_info = cube_regex.search(cube_type)
+                num_cubes, colour = cube_info.groups()
 
-                draw[colour] = int(num_dice)
+                draw[colour] = int(num_cubes)
 
             draws.append(draw)
 
-        games[game_ID] = draws
+        games[game_id] = draws
 
     return games
 
@@ -70,12 +72,28 @@ def display_game_info(games):
         log(f"Game {game_ID}: ", end="")
 
         for draw in draws:
-            for colour, num_dice in draw.items():
-                log(f"{num_dice} {colour}", end=",")
+            for colour, num_cubes in draw.items():
+                log(f"{num_cubes} {colour}", end=",")
 
             log("", end=";")
 
         log("")
+
+
+def determine_min_cubes(games):
+    min_cubes = {}
+
+    for game_id, draws in games.items():
+        min_red = min_green = min_blue = 0
+
+        for draw in draws:
+            min_red = max(min_red, draw.get('red', 0))
+            min_green = max(min_green, draw.get('green', 0))
+            min_blue = max(min_blue, draw.get('blue', 0))
+
+        min_cubes[game_id] = {'red': min_red, 'green': min_green, 'blue': min_blue}
+
+    return min_cubes
 
 
 def determine_possible_games(games, constraint):
@@ -85,40 +103,23 @@ def determine_possible_games(games, constraint):
     max_green = constraint['green']
     max_blue = constraint['blue']
 
-    for game_id, draws in games.items():
-        min_red = min_green = min_blue = 0
+    min_cubes = determine_min_cubes(games)
 
-        for draw in draws:
-            min_red = max(min_red, draw.get('red', 0))
-            min_green = max(min_green, draw.get('green', 0))
-            min_blue = max(min_blue, draw.get('blue', 0))
+    for game_id in games:
+        min_game_cubes = min_cubes[game_id]
 
-        if (min_red <= max_red) and (min_green <= max_green) and (min_blue <= max_blue):
+        if (    (min_game_cubes['red'] <= max_red) and
+                (min_game_cubes['green'] <= max_green) and
+                (min_game_cubes['blue'] <= max_blue)):
             possible_games.append(game_id)
 
     return possible_games
 
 
-def determine_min_cubes(games):
-    min_cubes = []
-
-    for game_id, draws in games.items():
-        min_red = min_green = min_blue = 0
-
-        for draw in draws:
-            min_red = max(min_red, draw.get('red', 0))
-            min_green = max(min_green, draw.get('green', 0))
-            min_blue = max(min_blue, draw.get('blue', 0))
-
-        min_cubes.append({'red': min_red, 'green': min_green, 'blue': min_blue})
-
-    return min_cubes
-
-
 def determine_cube_set_powers(min_cubes):
     powers = []
 
-    for cube_set in min_cubes:
+    for cube_set in min_cubes.values():
         power = cube_set['red'] * cube_set['green'] * cube_set['blue']
         powers.append(power)
 
@@ -128,7 +129,7 @@ def determine_cube_set_powers(min_cubes):
 def part1(inputs):
     games = extract_game_info(inputs)
     display_game_info(games)
-    possible_games = determine_possible_games(games, {'red': 12, 'green': 13, 'blue': 14})
+    possible_games = determine_possible_games(games, CUBES_CONSTRAINT)
     return sum(possible_games)
 
 
