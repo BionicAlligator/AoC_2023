@@ -1,7 +1,7 @@
 import re
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -99,6 +99,32 @@ def determine_possible_games(games, constraint):
     return possible_games
 
 
+def determine_min_cubes(games):
+    min_cubes = []
+
+    for game_id, draws in games.items():
+        min_red = min_green = min_blue = 0
+
+        for draw in draws:
+            min_red = max(min_red, draw.get('red', 0))
+            min_green = max(min_green, draw.get('green', 0))
+            min_blue = max(min_blue, draw.get('blue', 0))
+
+        min_cubes.append({'red': min_red, 'green': min_green, 'blue': min_blue})
+
+    return min_cubes
+
+
+def determine_cube_set_powers(min_cubes):
+    powers = []
+
+    for cube_set in min_cubes:
+        power = cube_set['red'] * cube_set['green'] * cube_set['blue']
+        powers.append(power)
+
+    return powers
+
+
 def part1(inputs):
     games = extract_game_info(inputs)
     display_game_info(games)
@@ -107,7 +133,10 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    games = extract_game_info(inputs)
+    min_cubes = determine_min_cubes(games)
+    powers = determine_cube_set_powers(min_cubes)
+    return sum(powers)
 
 
 def run_tests():
