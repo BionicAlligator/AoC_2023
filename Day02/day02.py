@@ -39,30 +39,38 @@ def read_input(filename):
     return lines
 
 
+def extract_cube_info(cube_details):
+    cubes = {}
+
+    for cube in cube_details:
+        cube_info = re.search('(\d+) ([a-z]+)', cube)
+        num_cubes, colour = cube_info.groups()
+
+        cubes[colour] = int(num_cubes)
+
+    return cubes
+
+
+def extract_draw_info(draw_details):
+    draws = []
+
+    for draw in draw_details:
+        cube_details = draw.split(",")
+
+        draws.append(extract_cube_info(cube_details))
+
+    return draws
+
+
 def extract_game_info(inputs):
     games = {}
 
     for game in inputs:
-        game_regex = re.compile(r'Game (\d+):(.*)')
-        game_info = game_regex.search(game)
+        game_info = re.search('Game (\d+):(.*)', game)
         game_id = int(game_info.group(1))
         draw_details = game_info.group(2).split(";")
 
-        draws = []
-        for draw in draw_details:
-            cubes = draw.split(",")
-
-            draw = {}
-            for cube_type in cubes:
-                cube_regex = re.compile(r'(\d+) ([a-z]+)')
-                cube_info = cube_regex.search(cube_type)
-                num_cubes, colour = cube_info.groups()
-
-                draw[colour] = int(num_cubes)
-
-            draws.append(draw)
-
-        games[game_id] = draws
+        games[game_id] = extract_draw_info(draw_details)
 
     return games
 
