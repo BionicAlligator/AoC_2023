@@ -1,4 +1,6 @@
-TESTING = True
+import re
+
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
@@ -35,8 +37,73 @@ def read_input(filename):
     return lines
 
 
+def extract_game_info(inputs):
+    games = {}
+
+    for game in inputs:
+        game_regex = re.compile(r'Game (\d+):(.*)')
+        game_info = game_regex.search(game)
+        game_ID = int(game_info.group(1))
+        draw_details = game_info.group(2).split(";")
+
+        draws = []
+        for draw in draw_details:
+            dice = draw.split(",")
+
+            draw = {}
+            for die_type in dice:
+                die_regex = re.compile(r'(\d+) ([a-z]+)')
+                die_info = die_regex.search(die_type)
+                num_dice, colour = die_info.groups()
+
+                draw[colour] = int(num_dice)
+
+            draws.append(draw)
+
+        games[game_ID] = draws
+
+    return games
+
+
+def display_game_info(games):
+    for game_ID, draws in games.items():
+        log(f"Game {game_ID}: ", end="")
+
+        for draw in draws:
+            for colour, num_dice in draw.items():
+                log(f"{num_dice} {colour}", end=",")
+
+            log("", end=";")
+
+        log("")
+
+
+def determine_possible_games(games, constraint):
+    possible_games = []
+
+    max_red = constraint['red']
+    max_green = constraint['green']
+    max_blue = constraint['blue']
+
+    for game_id, draws in games.items():
+        min_red = min_green = min_blue = 0
+
+        for draw in draws:
+            min_red = max(min_red, draw.get('red', 0))
+            min_green = max(min_green, draw.get('green', 0))
+            min_blue = max(min_blue, draw.get('blue', 0))
+
+        if (min_red <= max_red) and (min_green <= max_green) and (min_blue <= max_blue):
+            possible_games.append(game_id)
+
+    return possible_games
+
+
 def part1(inputs):
-    return
+    games = extract_game_info(inputs)
+    display_game_info(games)
+    possible_games = determine_possible_games(games, {'red': 12, 'green': 13, 'blue': 14})
+    return sum(possible_games)
 
 
 def part2(inputs):
