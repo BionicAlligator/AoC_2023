@@ -77,13 +77,7 @@ def tag_part_numbers(schematic_numbers, schematic_number_positions, engine_part_
 
 
 def extract_part_numbers(schematic_numbers):
-    part_numbers = []
-
-    for schematic_num in schematic_numbers:
-        if schematic_num['IsPartNum']:
-            part_numbers.append(schematic_num['Number'])
-
-    return part_numbers
+    return [schematic_num['Number'] for schematic_num in schematic_numbers if schematic_num['IsPartNum']]
 
 
 def extract_gear_ratios(schematic_numbers, schematic_number_positions, potential_gears):
@@ -107,10 +101,6 @@ def extract_gear_ratios(schematic_numbers, schematic_number_positions, potential
             gear_ratios.append(gear_ratio)
 
     return gear_ratios
-
-
-def calc_gear_ratios(gears):
-    return []
 
 
 def part1(inputs):
