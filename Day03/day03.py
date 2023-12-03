@@ -1,4 +1,4 @@
-TESTING = True
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
@@ -24,19 +24,69 @@ def read_tests(test_filename):
             tests.append((expected, inputs.copy()))
             inputs = []
         else:
-            inputs.append(line.rstrip())
+            inputs.append(line)
 
     return tests
 
 
 def read_input(filename):
     file = open(filename, "r")
-    lines = [line.rstrip() for line in file]
+    lines = [line for line in file]
     return lines
 
 
+def walk_schematic(inputs):
+    schematic_numbers = []
+    schematic_number_positions = {}
+    engine_part_positions = set()
+
+    next_schematic_number_index = 0
+
+    for y, line in enumerate(inputs):
+        schematic_number = ""
+
+        for x, char in enumerate(line):
+            if char.isdigit():
+                schematic_number += char
+                schematic_number_positions.update({(y, x): next_schematic_number_index})
+            else:
+                if schematic_number:
+                    schematic_numbers.append({'Number': int(schematic_number), 'IsPartNum': False})
+                    next_schematic_number_index += 1
+                    schematic_number = ""
+
+                if char not in ['.', '\n']:
+                    engine_part_positions.add((y, x))
+
+    return schematic_numbers, schematic_number_positions, engine_part_positions
+
+
+def tag_part_numbers(schematic_numbers, schematic_number_positions, engine_part_positions):
+    for part_pos_y, part_pos_x in engine_part_positions:
+        for check_pos_y in range(part_pos_y - 1, part_pos_y + 2):
+            for check_pos_x in range(part_pos_x - 1, part_pos_x + 2):
+                if (check_pos_y, check_pos_x) in schematic_number_positions:
+                    schematic_number_index = schematic_number_positions[(check_pos_y, check_pos_x)]
+                    schematic_numbers[schematic_number_index]['IsPartNum'] = True
+
+    return schematic_numbers
+
+
+def extract_part_numbers(schematic_numbers):
+    part_numbers = []
+
+    for schematic_num in schematic_numbers:
+        if schematic_num['IsPartNum']:
+            part_numbers.append(schematic_num['Number'])
+
+    return part_numbers
+
+
 def part1(inputs):
-    return
+    schematic_numbers, schematic_number_positions, engine_part_positions = walk_schematic(inputs)
+    schematic_numbers = tag_part_numbers(schematic_numbers, schematic_number_positions, engine_part_positions)
+    part_numbers = extract_part_numbers(schematic_numbers)
+    return sum(part_numbers)
 
 
 def part2(inputs):
