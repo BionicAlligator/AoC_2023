@@ -1,5 +1,5 @@
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -39,6 +39,7 @@ def walk_schematic(inputs):
     schematic_numbers = []
     schematic_number_positions = {}
     engine_part_positions = set()
+    potential_gears = set()
 
     next_schematic_number_index = 0
 
@@ -58,7 +59,10 @@ def walk_schematic(inputs):
                 if char not in ['.', '\n']:
                     engine_part_positions.add((y, x))
 
-    return schematic_numbers, schematic_number_positions, engine_part_positions
+                    if char == '*':
+                        potential_gears.add((y, x))
+
+    return schematic_numbers, schematic_number_positions, engine_part_positions, potential_gears
 
 
 def tag_part_numbers(schematic_numbers, schematic_number_positions, engine_part_positions):
@@ -82,15 +86,44 @@ def extract_part_numbers(schematic_numbers):
     return part_numbers
 
 
+def extract_gear_ratios(schematic_numbers, schematic_number_positions, potential_gears):
+    gear_ratios = []
+
+    for part_pos_y, part_pos_x in potential_gears:
+        adjacent_schematic_number_indices = set()
+
+        for check_pos_y in range(part_pos_y - 1, part_pos_y + 2):
+            for check_pos_x in range(part_pos_x - 1, part_pos_x + 2):
+                if (check_pos_y, check_pos_x) in schematic_number_positions:
+                    schematic_number_index = schematic_number_positions[(check_pos_y, check_pos_x)]
+                    adjacent_schematic_number_indices.add(schematic_number_index)
+
+        if len(adjacent_schematic_number_indices) == 2:
+            gear_ratio = 1
+
+            for schematic_number_index in adjacent_schematic_number_indices:
+                gear_ratio *= schematic_numbers[schematic_number_index]['Number']
+
+            gear_ratios.append(gear_ratio)
+
+    return gear_ratios
+
+
+def calc_gear_ratios(gears):
+    return []
+
+
 def part1(inputs):
-    schematic_numbers, schematic_number_positions, engine_part_positions = walk_schematic(inputs)
+    schematic_numbers, schematic_number_positions, engine_part_positions, _ = walk_schematic(inputs)
     schematic_numbers = tag_part_numbers(schematic_numbers, schematic_number_positions, engine_part_positions)
     part_numbers = extract_part_numbers(schematic_numbers)
     return sum(part_numbers)
 
 
 def part2(inputs):
-    return
+    schematic_numbers, schematic_number_positions, _, potential_gears = walk_schematic(inputs)
+    gear_ratios = extract_gear_ratios(schematic_numbers, schematic_number_positions, potential_gears)
+    return sum(gear_ratios)
 
 
 def run_tests():
