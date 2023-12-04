@@ -1,5 +1,5 @@
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -42,21 +42,42 @@ def parse_scratchcard_info(inputs):
         numbers = card.split(": ")[1].split(" | ")
         winning_numbers = numbers[0].split()
         our_numbers = numbers[1].split()
-        scratchcards.append([winning_numbers, our_numbers])
+        scratchcards.append([winning_numbers, our_numbers, 1])
 
     return scratchcards
+
+
+def determine_winners(winning_numbers, our_numbers):
+    return [num for num in our_numbers if num in winning_numbers]
 
 
 def evaluate_scratchcards(scratchcards):
     scratchcard_values = []
 
-    for winning_numbers, our_numbers in scratchcards:
-        our_winners = [num for num in our_numbers if num in winning_numbers]
-        log(our_winners)
+    for winning_numbers, our_numbers, _ in scratchcards:
+        our_winners = determine_winners(winning_numbers, our_numbers)
+
         if len(our_winners) > 0:
             scratchcard_values.append(2**(len(our_winners) - 1))
 
     return scratchcard_values
+
+
+def collect_scratchcards(scratchcards):
+    for card_num, (winning_numbers, our_numbers, count) in enumerate(scratchcards):
+        our_winners = determine_winners(winning_numbers, our_numbers)
+        num_winners = len(our_winners)
+        log(f"{card_num=} {num_winners=}")
+
+        for card_won in range(1, num_winners + 1):
+            scratchcards[card_num + card_won][2] += count
+
+    return scratchcards
+
+
+def count_scratchcards(scratchcards):
+    return [card[2] for card in scratchcards]
+
 
 def part1(inputs):
     scratchcards = parse_scratchcard_info(inputs)
@@ -65,7 +86,10 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    scratchcards = parse_scratchcard_info(inputs)
+    scratchcards = collect_scratchcards(scratchcards)
+    scratchcard_counts = count_scratchcards(scratchcards)
+    return sum(scratchcard_counts)
 
 
 def run_tests():
