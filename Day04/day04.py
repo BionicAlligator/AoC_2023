@@ -1,4 +1,4 @@
-TESTING = True
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
@@ -35,8 +35,33 @@ def read_input(filename):
     return lines
 
 
+def parse_scratchcard_info(inputs):
+    scratchcards = []
+
+    for card in inputs:
+        numbers = card.split(": ")[1].split(" | ")
+        winning_numbers = numbers[0].split()
+        our_numbers = numbers[1].split()
+        scratchcards.append([winning_numbers, our_numbers])
+
+    return scratchcards
+
+
+def evaluate_scratchcards(scratchcards):
+    scratchcard_values = []
+
+    for winning_numbers, our_numbers in scratchcards:
+        our_winners = [num for num in our_numbers if num in winning_numbers]
+        log(our_winners)
+        if len(our_winners) > 0:
+            scratchcard_values.append(2**(len(our_winners) - 1))
+
+    return scratchcard_values
+
 def part1(inputs):
-    return
+    scratchcards = parse_scratchcard_info(inputs)
+    scratchcard_values = evaluate_scratchcards(scratchcards)
+    return sum(scratchcard_values)
 
 
 def part2(inputs):
