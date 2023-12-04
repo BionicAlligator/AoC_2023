@@ -57,8 +57,8 @@ def evaluate_scratchcards(scratchcards):
     for winning_numbers, our_numbers, _ in scratchcards:
         our_winners = determine_winners(winning_numbers, our_numbers)
 
-        if len(our_winners) > 0:
-            scratchcard_values.append(2**(len(our_winners) - 1))
+        if our_winners:
+            scratchcard_values.append(2 ** (len(our_winners) - 1))
 
     return scratchcard_values
 
@@ -67,10 +67,9 @@ def collect_scratchcards(scratchcards):
     for card_num, (winning_numbers, our_numbers, count) in enumerate(scratchcards):
         our_winners = determine_winners(winning_numbers, our_numbers)
         num_winners = len(our_winners)
-        log(f"{card_num=} {num_winners=}")
 
-        for card_won in range(1, num_winners + 1):
-            scratchcards[card_num + card_won][2] += count
+        for card_won_relative_index in range(1, num_winners + 1):
+            scratchcards[card_num + card_won_relative_index][2] += count
 
     return scratchcards
 
