@@ -25,6 +25,32 @@ class Mapping:
     def reverse_map(self, value):
         return value + self.source_start - self.dest_start
 
+    def apply_to(self, input_ranges):
+        mapped_ranges = set()
+        unmapped_ranges = set()
+
+        for input_range in input_ranges:
+            input_start = input_range[0]
+            input_end = input_range[0] + input_range[1]
+            source_start = self.source_start
+            source_end = self.source_start + self.mapping_length
+            overlap_range_start = max(input_start, source_start)
+            overlap_range_end = min(input_end, source_end)
+            overlap_range_length = overlap_range_end - overlap_range_start
+
+            if overlap_range_length > 0:
+                mapped_ranges.add((self.map(overlap_range_start), overlap_range_length))
+
+                if input_start < source_start < input_end:
+                    unmapped_ranges.add((input_start, source_start - input_start))
+
+                if input_start < source_end < input_end:
+                    unmapped_ranges.add((source_end, input_end - source_end))
+            else:
+                unmapped_ranges.add(input_range)
+
+        return mapped_ranges, unmapped_ranges
+
 
 def log(message, end="\n"):
     if OUTPUT_TO_CONSOLE:
@@ -84,7 +110,7 @@ def parse_input(inputs):
 
 
 def parse_input_with_seed_ranges(inputs):
-    seeds = []
+    seeds = set()
     mappings = []
 
     map_from = map_to = ""
@@ -94,7 +120,7 @@ def parse_input_with_seed_ranges(inputs):
             seed_nums = [int(seed_string) for seed_string in seed_info.group(1).split()]
 
             for seed_index in range(0, int(len(seed_nums) / 2)):
-                seeds.append((seed_nums[seed_index * 2], seed_nums[seed_index * 2 + 1]))
+                seeds.add((seed_nums[seed_index * 2], seed_nums[seed_index * 2 + 1]))
 
             log(f"{seeds=}")
         elif mapping_init := re.search('(.*?)-to-(.*?) map', line):
@@ -159,6 +185,7 @@ def is_seed(seeds, seed):
     return False
 
 
+# This is effectively a brute force method.  Very inefficient.
 def lowest_location_with_seed(seeds, mappings):
     seed_found = False
     location = -1
@@ -194,46 +221,37 @@ def lowest_location_with_seed(seeds, mappings):
     return location
 
 
-# def all_mappings_are_seed_to_location(mappings):
-#     for mapping in mappings:
-#         if mapping.map_from != "seed" or mapping.map_to != "location":
-#             return False
-#
-#     return True
-#
-#
-# def is_overlap(mapping1, mapping2):
-#     if (mapping1.dest_start + mapping1.mapping_length <= mapping2.source_start or
-#             mapping1.dest_start >= mapping2.source_start + mapping2.mapping_length):
-#         return False
-#
-#     return True
-#
-#
-# def combine(mapping1, mapping2):
-#     map_from = mapping1.map_from
-#     map_to = mapping2.map_to
-#     source_start =
-#     dest_start =
-#     mapping_length =
-#     new_mapping = Mapping()
-#     return new_mapping
-#
-#
-# def collapse_mappings(mappings):
-#     while not all_mappings_are_seed_to_location(mappings):
-#         mapping1 = mappings.pop()
-#
-#         new_mappings = []
-#
-#         for mapping2 in mappings:
-#             if mapping1.map_to == mapping2.map_from and is_overlap(mapping1, mapping2):
-#                 new_mapping = combine(mapping1, mapping2)
-#                 new_mappings.append(new_mapping)
-#
-#         mappings.append(new_mappings)
-#
-#     return mappings
+def convert_seeds_to_locations(seeds, mappings):
+    output_ranges = seeds
+    map_from = "seed"
+
+    while map_from != "location":
+        input_ranges = output_ranges.copy()
+        output_ranges = set()
+
+        applicable_mappings = [m for m in mappings if m.map_from == map_from]
+        next_map_from = applicable_mappings[0].map_to
+
+        for mapping in applicable_mappings:
+            mapped_ranges, input_ranges = mapping.apply_to(input_ranges)
+            output_ranges.update(mapped_ranges)
+
+        # Pass through any inputs that are not mapped
+        output_ranges.update(input_ranges)
+
+        map_from = next_map_from
+
+    return output_ranges
+
+
+def nearest(locations):
+    nearest_location = float('inf')
+
+    for location, _ in locations:
+        if location < nearest_location:
+            nearest_location = location
+
+    return nearest_location
 
 
 def part1(inputs):
@@ -244,7 +262,9 @@ def part1(inputs):
 
 def part2(inputs):
     seeds, mappings = parse_input_with_seed_ranges(inputs)
-    return lowest_location_with_seed(seeds, mappings)
+    locations = convert_seeds_to_locations(seeds, mappings)
+    return nearest(locations)
+    # return lowest_location_with_seed(seeds, mappings)
 
 
 def run_tests():
