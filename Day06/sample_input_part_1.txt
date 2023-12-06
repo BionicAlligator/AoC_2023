@@ -1,0 +1,20 @@
+4=
+Time:      7
+Distance:  9
+
+8=
+Time:      15
+Distance:  40
+
+9=
+Time:      30
+Distance:  200
+
+32=
+Time:      7  15
+Distance:  9  40
+
+288=
+Time:      7  15   30
+Distance:  9  40  200
+
