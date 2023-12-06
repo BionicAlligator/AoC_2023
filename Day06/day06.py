@@ -2,7 +2,7 @@ import re
 from functools import reduce
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -45,8 +45,20 @@ def parse_race_table(inputs):
     times = [eval(t) for t in time_strings]
     distances = [eval(d) for d in distance_strings]
 
-    race_history = tuple(zip(times, distances))
+    race_history = list(zip(times, distances))
     log(race_history)
+    return race_history
+
+
+def parse_race_table_single_race(inputs):
+    time_strings = re.findall('\d+', inputs[0].replace(" ", ""))
+    distance_strings = re.findall('\d+', inputs[1].replace(" ", ""))
+
+    times = [eval(t) for t in time_strings]
+    distances = [eval(d) for d in distance_strings]
+
+    race_history = list(zip(times, distances))
+    log(f"{race_history=}")
     return race_history
 
 
@@ -89,7 +101,15 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    ways_to_win = []
+    race_history = parse_race_table_single_race(inputs)
+
+    for race_length, record_distance in race_history:
+        time_vs_distance = create_lookup_table(race_length)
+        winning_button_press_times = determine_winning_button_press_times(record_distance, time_vs_distance)
+        ways_to_win.append(len(winning_button_press_times))
+
+    return aggregate(ways_to_win)
 
 
 def run_tests():
