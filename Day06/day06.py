@@ -66,6 +66,7 @@ def create_lookup_table(race_length):
         distance = speed * run_time
         time_vs_distance.update({button_press_time:distance})
 
+    log(f"{time_vs_distance=}")
     return time_vs_distance
 
 
@@ -85,25 +86,25 @@ def aggregate(winning_button_press_times):
 
 def count_winning_button_press_times(race_length, record_distance):
     num_winners = 0
-    button_press_time = 1
-    found_start_of_range = False
-    found_end_of_range = False
+    button_press_time = race_length // 2
 
-    while not found_end_of_range:
+    # If the race length is an even number of seconds, we have one fewer winning time
+    adjustment_factor = 0 if race_length % 2 else -1
+    found_start_of_range = False
+
+    while not found_start_of_range:
         speed = button_press_time
         run_time = race_length - button_press_time
         distance = speed * run_time
 
-        if distance > record_distance:
+        if distance <= record_distance:
             found_start_of_range = True
-            num_winners += 1
         else:
-            if found_start_of_range:
-                found_end_of_range = True
+            num_winners += 1
 
-        button_press_time += 1
+        button_press_time -= 1
 
-    return num_winners
+    return num_winners * 2 + adjustment_factor
 
 
 def part1(inputs):
