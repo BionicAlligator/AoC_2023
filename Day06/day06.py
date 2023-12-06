@@ -51,15 +51,10 @@ def parse_race_table(inputs):
 
 
 def parse_race_table_single_race(inputs):
-    time_strings = re.findall('\d+', inputs[0].replace(" ", ""))
-    distance_strings = re.findall('\d+', inputs[1].replace(" ", ""))
+    race_length = int(''.join(list(filter(str.isdigit, inputs[0]))))
+    record_distance = int(''.join(list(filter(str.isdigit, inputs[1]))))
 
-    times = [eval(t) for t in time_strings]
-    distances = [eval(d) for d in distance_strings]
-
-    race_history = list(zip(times, distances))
-    log(f"{race_history=}")
-    return race_history
+    return race_length, record_distance
 
 
 def create_lookup_table(race_length):
@@ -88,6 +83,29 @@ def aggregate(winning_button_press_times):
     return reduce((lambda x, y: x * y), winning_button_press_times)
 
 
+def count_winning_button_press_times(race_length, record_distance):
+    num_winners = 0
+    button_press_time = 1
+    found_start_of_range = False
+    found_end_of_range = False
+
+    while not found_end_of_range:
+        speed = button_press_time
+        run_time = race_length - button_press_time
+        distance = speed * run_time
+
+        if distance > record_distance:
+            found_start_of_range = True
+            num_winners += 1
+        else:
+            if found_start_of_range:
+                found_end_of_range = True
+
+        button_press_time += 1
+
+    return num_winners
+
+
 def part1(inputs):
     ways_to_win = []
     race_history = parse_race_table(inputs)
@@ -101,15 +119,8 @@ def part1(inputs):
 
 
 def part2(inputs):
-    ways_to_win = []
-    race_history = parse_race_table_single_race(inputs)
-
-    for race_length, record_distance in race_history:
-        time_vs_distance = create_lookup_table(race_length)
-        winning_button_press_times = determine_winning_button_press_times(record_distance, time_vs_distance)
-        ways_to_win.append(len(winning_button_press_times))
-
-    return aggregate(ways_to_win)
+    race_length, record_distance = parse_race_table_single_race(inputs)
+    return count_winning_button_press_times(race_length, record_distance)
 
 
 def run_tests():
