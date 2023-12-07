@@ -2,10 +2,19 @@ from collections import defaultdict
 from functools import cmp_to_key
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
-CARD_STRENGTHS = list(reversed(['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']))
+if PART == 2:
+    JOKERS = True
+else:
+    JOKERS = False
+
+if JOKERS:
+    CARD_STRENGTHS = list(reversed(['A', 'K', 'Q', 'T', '9', '8', '7', '6', '5', '4', '3', '2', 'J']))
+else:
+    CARD_STRENGTHS = list(reversed(['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']))
+
 HAND_TYPES = list(reversed(["High card", "One pair", "Two pair", "Three of a kind", "Full house", "Four of a kind", "Five of a kind"]))
 
 
@@ -24,6 +33,19 @@ class Hand:
         for card_strength in CARD_STRENGTHS:
             cards_of_strength = len([card for card in self.cards if card == card_strength])
             card_counts.append(cards_of_strength)
+
+        # Handle jokers
+        if card_counts[0]:
+            max_val = 0
+            max_val_index = 0
+
+            for index in range(1, len(card_counts)):
+                if card_counts[index] >= max_val:
+                    max_val = card_counts[index]
+                    max_val_index = index
+
+            card_counts[max_val_index] += card_counts[0]
+            card_counts[0] = 0
 
         if 5 in card_counts:
             hand_type = "Five of a kind"
@@ -108,8 +130,6 @@ def sorted_by_strength(hands):
 
 
 def part1(inputs):
-    log(f"{HAND_TYPES=}, {CARD_STRENGTHS=}")
-
     mixed_hands = parse_input(inputs)
 
     hands_by_type = defaultdict(list)
@@ -142,7 +162,7 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    return part1(inputs)
 
 
 def run_tests():
