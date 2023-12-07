@@ -1,6 +1,48 @@
-TESTING = True
+from collections import defaultdict
+from functools import cmp_to_key
+
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
+
+CARD_STRENGTHS = list(reversed(['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']))
+HAND_TYPES = list(reversed(["High card", "One pair", "Two pair", "Three of a kind", "Full house", "Four of a kind", "Five of a kind"]))
+
+
+class Hand:
+    def __init__(self, cards, bid):
+        self.cards = cards
+        self.bid = int(bid)
+        self.hand_type = self.determine_type()
+
+    def __str__(self):
+        return f"Type: {self.hand_type}, Cards: {self.cards}, Bid: {self.bid}"
+
+    def determine_type(self):
+        card_counts = []
+
+        for card_strength in CARD_STRENGTHS:
+            cards_of_strength = len([card for card in self.cards if card == card_strength])
+            card_counts.append(cards_of_strength)
+
+        if 5 in card_counts:
+            hand_type = "Five of a kind"
+        elif 4 in card_counts:
+            hand_type = "Four of a kind"
+        elif 3 in card_counts:
+            if 2 in card_counts:
+                hand_type = "Full house"
+            else:
+                hand_type = "Three of a kind"
+        elif 2 in card_counts:
+            if card_counts.count(2) == 2:
+                hand_type = "Two pair"
+            else:
+                hand_type = "One pair"
+        else:
+            hand_type = "High card"
+
+        return hand_type
 
 
 def log(message, end="\n"):
@@ -35,8 +77,68 @@ def read_input(filename):
     return lines
 
 
+def parse_input(inputs):
+    hands = []
+
+    for hand_string in inputs:
+        card_string, bid = hand_string.rstrip().split(" ")
+        cards = [*card_string]
+        hand = Hand(cards, bid)
+        log(f"{str(hand)}")
+        hands.append(hand)
+
+    return hands
+
+
+def compare(hand1, hand2):
+    for card_index in range(0, 5):
+        hand1_card_strength = CARD_STRENGTHS.index(hand1.cards[card_index])
+        hand2_card_strength = CARD_STRENGTHS.index(hand2.cards[card_index])
+
+        if hand1_card_strength > hand2_card_strength:
+            return -1
+        elif hand2_card_strength > hand1_card_strength:
+            return 1
+
+    return 0
+
+
+def sorted_by_strength(hands):
+    return sorted(hands, key=cmp_to_key(compare))
+
+
 def part1(inputs):
-    return
+    log(f"{HAND_TYPES=}, {CARD_STRENGTHS=}")
+
+    mixed_hands = parse_input(inputs)
+
+    hands_by_type = defaultdict(list)
+
+    for hand in mixed_hands:
+        hands_by_type[hand.hand_type].append(hand)
+
+    sorted_hands_by_type = {}
+
+    for hand_type, hands in hands_by_type.items():
+        sorted_hands_by_type.update({hand_type: sorted_by_strength(hands)})
+
+    log(f"{sorted_hands_by_type=}")
+
+    hands_in_order = []
+
+    for hand_type in HAND_TYPES:
+        hands_in_order.extend(sorted_hands_by_type.get(hand_type, []))
+
+    log("Hands in order:")
+    for hand in hands_in_order:
+        log(f"  {hand}")
+
+    winnings = 0
+
+    for index, hand in enumerate(list(reversed(hands_in_order))):
+        winnings += hand.bid * (index + 1)
+
+    return winnings
 
 
 def part2(inputs):
