@@ -1,6 +1,15 @@
-TESTING = True
+import re
+
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
+
+
+class Node:
+    def __init__(self, name, left, right):
+        self.name = name
+        self.left = left
+        self.right = right
 
 
 def log(message, end="\n"):
@@ -20,9 +29,11 @@ def read_tests(test_filename):
             expected = line.split("=")[1].lstrip()
         elif line.rstrip().endswith("="):
             expected = line.split("=")[0].rstrip()
-        elif not line.strip():  # Blank line means end of test specification
+        elif line.strip() == "END":  # "END" means end of test specification
             tests.append((expected, inputs.copy()))
             inputs = []
+        elif line.strip() == "":
+            pass
         else:
             inputs.append(line.rstrip())
 
@@ -31,12 +42,39 @@ def read_tests(test_filename):
 
 def read_input(filename):
     file = open(filename, "r")
-    lines = [line.rstrip() for line in file]
+    lines = [line.rstrip() for line in file if line.rstrip()]
     return lines
 
 
+def parse_maps(inputs):
+    nodes = {}
+    instructions = inputs[0]
+
+    for line in inputs[1:]:
+        name, left, right = re.findall(r'\b\w{3}\b', line)
+        nodes.update({name: Node(name, left, right)})
+
+    return nodes, instructions
+
+
+def walk_map(nodes, instructions):
+    steps = 0
+    instruction_index = 0
+    next_node_name = 'AAA'
+
+    while not next_node_name == "ZZZ":
+        current_node = nodes[next_node_name]
+        turn = instructions[instruction_index]
+        next_node_name = current_node.left if turn == 'L' else current_node.right
+        instruction_index = (instruction_index + 1) % len(instructions)
+        steps += 1
+
+    return steps
+
+
 def part1(inputs):
-    return
+    nodes, instructions = parse_maps(inputs)
+    return walk_map(nodes, instructions)
 
 
 def part2(inputs):
