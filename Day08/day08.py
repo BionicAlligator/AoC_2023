@@ -1,7 +1,8 @@
 import re
+from math import lcm
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -10,6 +11,23 @@ class Node:
         self.name = name
         self.left = left
         self.right = right
+        self.is_start_node = self.name[2] == 'A'
+        self.is_end_node = self.name[2] == 'Z'
+        self.steps_to_end = -1
+
+    def calc_steps_to_end(self, nodes, instructions):
+        steps = 0
+        instruction_index = 0
+        current_node = self
+
+        while not current_node.is_end_node:
+            turn = instructions[instruction_index]
+            next_node_name = current_node.left if turn == 'L' else current_node.right
+            current_node = nodes[next_node_name]
+            instruction_index = (instruction_index + 1) % len(instructions)
+            steps += 1
+
+        self.steps_to_end = steps
 
 
 def log(message, end="\n"):
@@ -78,7 +96,16 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    nodes, instructions = parse_maps(inputs)
+
+    start_nodes = [node for node in nodes.values() if node.is_start_node]
+
+    for node in start_nodes:
+        node.calc_steps_to_end(nodes, instructions)
+
+    steps_to_end = [node.steps_to_end for node in start_nodes]
+
+    return lcm(*steps_to_end)
 
 
 def run_tests():
