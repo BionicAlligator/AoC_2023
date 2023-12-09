@@ -14,35 +14,26 @@ class Sequence:
     def last_value(self):
         return self.values[-1]
 
-    def extend_right(self):
+    def extend(self, right=True):
         if not all(value == 0 for value in self.values):
-            differences = []
+            self.calc_differences()
+            self.next_sequence.extend(right)
 
-            for index in range(1, len(self.values)):
-                diff = self.values[index] - self.values[index - 1]
-                differences.append(diff)
-
-            self.next_sequence = Sequence(differences)
-            self.next_sequence.extend_right()
-
-            self.values.append(self.last_value() + self.next_sequence.last_value())
+            if right:
+                self.values.append(self.last_value() + self.next_sequence.last_value())
+            else:
+                self.values.insert(0, self.first_value() - self.next_sequence.first_value())
         else:
             self.values.append(0)
 
-    def extend_left(self):
-        if not all(value == 0 for value in self.values):
-            differences = []
+    def calc_differences(self):
+        differences = []
 
-            for index in range(1, len(self.values)):
-                diff = self.values[index] - self.values[index - 1]
-                differences.append(diff)
+        for index in range(1, len(self.values)):
+            diff = self.values[index] - self.values[index - 1]
+            differences.append(diff)
 
-            self.next_sequence = Sequence(differences)
-            self.next_sequence.extend_left()
-
-            self.values.insert(0, self.first_value() - self.next_sequence.first_value())
-        else:
-            self.values.append(0)
+        self.next_sequence = Sequence(differences)
 
 
 def log(message, end="\n"):
@@ -93,7 +84,7 @@ def part1(inputs):
     sequences = parse_input(inputs)
 
     for sequence in sequences:
-        sequence.extend_right()
+        sequence.extend()
         total = total + sequence.last_value()
 
     return total
@@ -105,7 +96,7 @@ def part2(inputs):
     sequences = parse_input(inputs)
 
     for sequence in sequences:
-        sequence.extend_left()
+        sequence.extend(False)
         total = total + sequence.first_value()
 
     return total
