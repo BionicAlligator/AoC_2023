@@ -1,6 +1,30 @@
-TESTING = True
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
+
+
+class Sequence:
+    def __init__(self, values):
+        self.values = values
+        self.next_sequence = None
+
+    def last_value(self):
+        return self.values[-1]
+
+    def extend(self):
+        if not all(value == 0 for value in self.values):
+            differences = []
+
+            for index in range(1, len(self.values)):
+                diff = self.values[index] - self.values[index - 1]
+                differences.append(diff)
+
+            self.next_sequence = Sequence(differences)
+            self.next_sequence.extend()
+
+            self.values.append(self.last_value() + self.next_sequence.last_value())
+        else:
+            self.values.append(0)
 
 
 def log(message, end="\n"):
@@ -35,8 +59,26 @@ def read_input(filename):
     return lines
 
 
+def parse_input(inputs):
+    sequences = []
+
+    for line in inputs:
+        values = [int(value) for value in line.split()]
+        sequences.append(Sequence(values))
+
+    return sequences
+
+
 def part1(inputs):
-    return
+    total = 0
+
+    sequences = parse_input(inputs)
+
+    for sequence in sequences:
+        sequence.extend()
+        total = total + sequence.last_value()
+
+    return total
 
 
 def part2(inputs):
