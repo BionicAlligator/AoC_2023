@@ -14,18 +14,6 @@ class Sequence:
     def last_value(self):
         return self.values[-1]
 
-    def extend(self, right=True):
-        if not all(value == 0 for value in self.values):
-            self.calc_differences()
-            self.next_sequence.extend(right)
-
-            if right:
-                self.values.append(self.last_value() + self.next_sequence.last_value())
-            else:
-                self.values.insert(0, self.first_value() - self.next_sequence.first_value())
-        else:
-            self.values.append(0)
-
     def calc_differences(self):
         differences = []
 
@@ -34,6 +22,17 @@ class Sequence:
             differences.append(diff)
 
         self.next_sequence = Sequence(differences)
+
+    def extend(self):
+        if not all(value == 0 for value in self.values):
+            self.calc_differences()
+            self.next_sequence.extend()
+
+            self.values.insert(0, self.first_value() - self.next_sequence.first_value())
+            self.values.append(self.last_value() + self.next_sequence.last_value())
+        else:
+            self.values.insert(0, 0)
+            self.values.append(0)
 
 
 def log(message, end="\n"):
@@ -96,7 +95,7 @@ def part2(inputs):
     sequences = parse_input(inputs)
 
     for sequence in sequences:
-        sequence.extend(False)
+        sequence.extend()
         total = total + sequence.first_value()
 
     return total
