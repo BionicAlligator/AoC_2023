@@ -1,5 +1,5 @@
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -8,10 +8,13 @@ class Sequence:
         self.values = values
         self.next_sequence = None
 
+    def first_value(self):
+        return self.values[0]
+
     def last_value(self):
         return self.values[-1]
 
-    def extend(self):
+    def extend_right(self):
         if not all(value == 0 for value in self.values):
             differences = []
 
@@ -20,9 +23,24 @@ class Sequence:
                 differences.append(diff)
 
             self.next_sequence = Sequence(differences)
-            self.next_sequence.extend()
+            self.next_sequence.extend_right()
 
             self.values.append(self.last_value() + self.next_sequence.last_value())
+        else:
+            self.values.append(0)
+
+    def extend_left(self):
+        if not all(value == 0 for value in self.values):
+            differences = []
+
+            for index in range(1, len(self.values)):
+                diff = self.values[index] - self.values[index - 1]
+                differences.append(diff)
+
+            self.next_sequence = Sequence(differences)
+            self.next_sequence.extend_left()
+
+            self.values.insert(0, self.first_value() - self.next_sequence.first_value())
         else:
             self.values.append(0)
 
@@ -75,14 +93,22 @@ def part1(inputs):
     sequences = parse_input(inputs)
 
     for sequence in sequences:
-        sequence.extend()
+        sequence.extend_right()
         total = total + sequence.last_value()
 
     return total
 
 
 def part2(inputs):
-    return
+    total = 0
+
+    sequences = parse_input(inputs)
+
+    for sequence in sequences:
+        sequence.extend_left()
+        total = total + sequence.first_value()
+
+    return total
 
 
 def run_tests():
