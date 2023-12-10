@@ -1,5 +1,7 @@
+from shapely.geometry import Point, Polygon
+
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -7,7 +9,8 @@ class Node:
     def __init__(self, y, x, char):
         self.neighbour_coords = []
         self.neighbours = []
-        self.visited = False
+        self.is_visited = False
+        self.is_enclosed = False
         self.distance_from_start = float("inf")
 
         self.y = y
@@ -21,6 +24,10 @@ class Node:
             self.is_start_node = False
 
         self.determine_neighbours()
+
+    def __str__(self):
+        return (f"Coords: {self.y, self.x}  Start Node: {self.is_start_node}  "
+                f"Enclosed: {self.is_enclosed}  Visited: {self.is_visited}")
 
     def is_neighbour(self, y, x):
         return True if (y, x) in self.neighbour_coords else False
@@ -58,18 +65,22 @@ class Node:
                 self.neighbours.append(nodes[neighbour_y][neighbour_x])
 
     def visit(self, distance_from_start):
-        self.visited = True
+        self.is_visited = True
 
         if self.distance_from_start > distance_from_start:
             self.distance_from_start = distance_from_start
 
         for neighbour in self.neighbours:
-            if not neighbour.visited and not neighbour.is_start_node:
+            if not neighbour.is_visited:
                 return neighbour
 
         for neighbour in self.neighbours:
             if neighbour.is_start_node:
                 return neighbour
+
+    def determine_if_enclosed(self, node_polygon):
+        if not self.is_visited:
+            self.is_enclosed = Point(self.y, self.x).within(node_polygon)
 
 
 def log(message, end="\n"):
@@ -96,6 +107,12 @@ def read_tests(test_filename):
             inputs.append(line.rstrip())
 
     return tests
+
+
+def read_input(filename):
+    file = open(filename, "r")
+    lines = [line.rstrip() for line in file]
+    return lines
 
 
 def parse_input(inputs):
@@ -125,20 +142,62 @@ def connect_nodes(nodes):
 
 
 def walk_tunnel(nodes, start_node):
+    node_coords = []
+
+    start_node.is_visited = True
     current_node = start_node.neighbours[0]
     distance_from_start = 1
 
     while current_node != start_node:
         current_node = current_node.visit(distance_from_start)
         distance_from_start += 1
+        node_coords.append((current_node.y, current_node.x))
 
-    return nodes, distance_from_start
+    return nodes, distance_from_start, Polygon(node_coords)
 
 
-def read_input(filename):
-    file = open(filename, "r")
-    lines = [line.rstrip() for line in file]
-    return lines
+def determine_enclosed_nodes(nodes, node_polygon):
+    for node_row in nodes:
+        for node in node_row:
+            node.determine_if_enclosed(node_polygon)
+
+    return nodes
+
+
+def print_map(nodes):
+    warnings = []
+    unvisited_enclosed_nodes = 0
+
+    for node_row in nodes:
+        for node in node_row:
+            if node.is_visited:
+                log(node.char, end="")
+            elif node.is_enclosed:
+                unvisited_enclosed_nodes += 1
+                log("I", end="")
+            else:
+                log("O", end="")
+
+            if node.is_visited and node.is_enclosed:
+                warnings.append(f"WARNING: Marked as Visited and Enclosed: {node}")
+
+        log("")
+
+    log(f"Number of Unvisited Enclosed nodes = {unvisited_enclosed_nodes}")
+
+    for warning in warnings:
+        log(warning)
+
+
+def count_enclosed_nodes(nodes):
+    enclosed_count = 0
+
+    for node_row in nodes:
+        for node in node_row:
+            if node.is_enclosed and not node.is_visited:
+                enclosed_count += 1
+
+    return enclosed_count
 
 
 def part1(inputs):
@@ -146,13 +205,23 @@ def part1(inputs):
 
     nodes = connect_nodes(nodes)
 
-    nodes, distance_from_start = walk_tunnel(nodes, start_node)
+    nodes, distance_from_start, _ = walk_tunnel(nodes, start_node)
 
     return distance_from_start // 2
 
 
 def part2(inputs):
-    return
+    nodes, start_node = parse_input(inputs)
+
+    nodes = connect_nodes(nodes)
+
+    nodes, distance_from_start, node_polygon = walk_tunnel(nodes, start_node)
+
+    nodes = determine_enclosed_nodes(nodes, node_polygon)
+
+    print_map(nodes)
+
+    return count_enclosed_nodes(nodes)
 
 
 def run_tests():
