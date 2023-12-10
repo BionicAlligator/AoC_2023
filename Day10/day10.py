@@ -2,7 +2,7 @@ from shapely.geometry import Point, Polygon
 
 TESTING = False
 PART = 2
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
 
 
 class Node:
@@ -78,6 +78,28 @@ class Node:
             if neighbour.is_start_node:
                 return neighbour
 
+    # TODO:
+    # This is slow to run.  I believe it should be possible to do the following instead:
+    #
+    # For each unvisited node:
+    # A. Count how many pipes are passed from that node to the outside along the X axis:
+    #   1. Search along row:
+    #       L followed by any number of - followed by 7 = replace the L with |
+    #       F followed by any number of - followed by J = replace F with |
+    #   2. Count | between node and the left edge
+    #   3. Count | between node and the right edge
+    #   4. If either is an even number, this is an outside node
+    #
+    # B. Count how many pipes are passed from that node to the outside along the Y axis:
+    #   1. Search down column:
+    #       F followed by any number of | followed by J = replace J with -
+    #       7 followed by any number of | followed by L = replace L with -
+    #   2. Count - between node and the top edge
+    #   3. Count - between node and the bottom edge
+    #   4. If either is an even number, this is an outside node
+    #
+    # If we got to here, it means the node has an odd number of pipes between it and every edge
+    # and is therefore completely enclosed
     def determine_if_enclosed(self, node_polygon):
         if not self.is_visited:
             self.is_enclosed = Point(self.y, self.x).within(node_polygon)
