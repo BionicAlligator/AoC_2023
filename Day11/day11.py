@@ -1,6 +1,8 @@
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
+
+EXPANSION_MULTIPLIER = 1000000
 
 
 def log(message, end="\n"):
@@ -47,21 +49,26 @@ def transpose(input_list):
     return [[row[i] for row in input_list] for i in range(len(input_list[0]))]
 
 
-def expand_universe_in_one_dimension(inputs):
+def expand_universe_in_one_dimension(inputs, universe_is_old=False):
     expanded_universe = []
 
     for row in inputs:
-        if all(element == '.' for element in row):
+        if all(element in ['.', '$'] for element in row):
+            if universe_is_old:
+                expanded_universe.append(['$'] * len(row))
+            else:
+                expanded_universe.append(row)
+                expanded_universe.append(row)
+        else:
             expanded_universe.append(row)
-        expanded_universe.append(row)
 
     return expanded_universe
 
 
-def expand_universe(inputs):
-    expanded_universe_x = expand_universe_in_one_dimension(inputs)
+def expand_universe(inputs, universe_is_old=False):
+    expanded_universe_x = expand_universe_in_one_dimension(inputs, universe_is_old)
     expanded_universe_x_transposed = transpose(expanded_universe_x)
-    expanded_universe_transposed = expand_universe_in_one_dimension(expanded_universe_x_transposed)
+    expanded_universe_transposed = expand_universe_in_one_dimension(expanded_universe_x_transposed, universe_is_old)
     expanded_universe = transpose(expanded_universe_transposed)
     return expanded_universe
 
@@ -73,6 +80,31 @@ def extract_galaxies(universe):
         for x, sector in enumerate(row):
             if sector == "#":
                 galaxies.append((y, x))
+
+    return galaxies
+
+
+def extract_old_galaxies(universe):
+    galaxies = []
+
+    y = 0
+
+    for row in universe:
+        x = 0
+
+        if all(element == '$' for element in row):
+            y += EXPANSION_MULTIPLIER
+        else:
+            for sector in row:
+                if sector == '$':
+                    x += EXPANSION_MULTIPLIER
+                else:
+                    if sector == '#':
+                        galaxies.append((y, x))
+
+                    x += 1
+
+            y += 1
 
     return galaxies
 
@@ -99,7 +131,11 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    expanded_universe = expand_universe(inputs, True)
+    print_universe(expanded_universe)
+    galaxies = extract_old_galaxies(expanded_universe)
+    inter_galactic_shortest_paths = measure_distances_between(galaxies)
+    return sum(inter_galactic_shortest_paths)
 
 
 def run_tests():
