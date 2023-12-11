@@ -1,4 +1,4 @@
-TESTING = True
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
@@ -35,8 +35,67 @@ def read_input(filename):
     return lines
 
 
+def print_universe(universe):
+    for row in universe:
+        for sector in row:
+            log(sector, end="")
+
+        log("")
+
+
+def transpose(input_list):
+    return [[row[i] for row in input_list] for i in range(len(input_list[0]))]
+
+
+def expand_universe_in_one_dimension(inputs):
+    expanded_universe = []
+
+    for row in inputs:
+        if all(element == '.' for element in row):
+            expanded_universe.append(row)
+        expanded_universe.append(row)
+
+    return expanded_universe
+
+
+def expand_universe(inputs):
+    expanded_universe_x = expand_universe_in_one_dimension(inputs)
+    expanded_universe_x_transposed = transpose(expanded_universe_x)
+    expanded_universe_transposed = expand_universe_in_one_dimension(expanded_universe_x_transposed)
+    expanded_universe = transpose(expanded_universe_transposed)
+    return expanded_universe
+
+
+def extract_galaxies(universe):
+    galaxies = []
+
+    for y, row in enumerate(universe):
+        for x, sector in enumerate(row):
+            if sector == "#":
+                galaxies.append((y, x))
+
+    return galaxies
+
+
+def measure_distances_between(galaxies):
+    shortest_paths = []
+    galaxies_to_pop = len(galaxies) - 1
+
+    for _ in range(galaxies_to_pop):
+        galaxy1 = galaxies.pop()
+
+        for galaxy2 in galaxies:
+            shortest_paths.append(abs(galaxy1[0] - galaxy2[0]) + abs(galaxy1[1] - galaxy2[1]))
+
+    return shortest_paths
+
+
 def part1(inputs):
-    return
+    expanded_universe = expand_universe(inputs)
+    print_universe(expanded_universe)
+    galaxies = extract_galaxies(expanded_universe)
+    inter_galactic_shortest_paths = measure_distances_between(galaxies)
+    return sum(inter_galactic_shortest_paths)
 
 
 def part2(inputs):
