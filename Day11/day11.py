@@ -1,6 +1,6 @@
 TESTING = False
 PART = 2
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
 
 EXPANSION_MULTIPLIER = 1000000
 
@@ -57,8 +57,7 @@ def expand_universe_in_one_dimension(inputs, universe_is_old=False):
             if universe_is_old:
                 expanded_universe.append(['$'] * len(row))
             else:
-                expanded_universe.append(row)
-                expanded_universe.append(row)
+                expanded_universe.extend([row] * 2)
         else:
             expanded_universe.append(row)
 
@@ -74,17 +73,6 @@ def expand_universe(inputs, universe_is_old=False):
 
 
 def extract_galaxies(universe):
-    galaxies = []
-
-    for y, row in enumerate(universe):
-        for x, sector in enumerate(row):
-            if sector == "#":
-                galaxies.append((y, x))
-
-    return galaxies
-
-
-def extract_old_galaxies(universe):
     galaxies = []
 
     y = 0
@@ -133,7 +121,7 @@ def part1(inputs):
 def part2(inputs):
     expanded_universe = expand_universe(inputs, True)
     print_universe(expanded_universe)
-    galaxies = extract_old_galaxies(expanded_universe)
+    galaxies = extract_galaxies(expanded_universe)
     inter_galactic_shortest_paths = measure_distances_between(galaxies)
     return sum(inter_galactic_shortest_paths)
 
