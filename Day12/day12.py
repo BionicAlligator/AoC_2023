@@ -1,8 +1,10 @@
 import re
 
 TESTING = False
-PART = 1
-OUTPUT_TO_CONSOLE = True
+PART = 2
+OUTPUT_TO_CONSOLE = False
+
+possible_arrangement_cache = {}
 
 
 def log(message, end="\n"):
@@ -40,15 +42,13 @@ def read_input(filename):
 def parse_input(inputs, folded=False):
     springs = []
     broken_springs = []
-    patterns = []
-    num_damaged_springs = []
 
     for row in inputs:
         spring_string, broken_spring_string = row.split(" ")
 
         if folded:
-            spring_string = ((spring_string + "?") * 5)[0:-1]
-            broken_spring_string = ((broken_spring_string + ",") * 5)[0:-1]
+            spring_string = "?".join([spring_string] * 5)
+            broken_spring_string = ",".join([broken_spring_string] * 5)
 
         springs.append(spring_string.replace('.', 'g').replace('?', 'u').replace('#', 'b'))
 
@@ -56,153 +56,113 @@ def parse_input(inputs, folded=False):
 
         broken_springs.append(broken_springs_on_row)
 
-        # num_damaged_springs.append(sum(broken_springs_on_row))
-
-        # pattern = "g*?"
-        #
-        # for index, num_springs in enumerate(broken_springs_on_row):
-        #     if index == len(broken_springs_on_row) - 1:
-        #         pattern += "b{" + str(num_springs) + "}g*?$"
-        #     else:
-        #         pattern += "b{" + str(num_springs) + "}g+?"
-        #
-        # patterns.append(pattern)
-
-    return springs, broken_springs, patterns, num_damaged_springs
+    return springs, broken_springs
 
 
-# def generate_spring_arrangements(spring_row, num_damaged_springs):
-#     spring_arrangements = []
-#
-#     if len(spring_row) < num_damaged_springs:
-#         return []
-#
-#     if 'u' not in spring_row:
-#         if spring_row.count('b') == num_damaged_springs:
-#             return [spring_row]
-#         else:
-#             return []
-#
-#     if spring_row[0] in ['u', 'b']:
-#         for spring_arrangement in generate_spring_arrangements(spring_row[1:], num_damaged_springs - 1):
-#             spring_arrangements.append("b" + spring_arrangement)
-#
-#     if spring_row[0] != 'b':
-#         for spring_arrangement in generate_spring_arrangements(spring_row[1:], num_damaged_springs):
-#             spring_arrangements.append("g" + spring_arrangement)
-#
-#     return spring_arrangements
+def generate_spring_arrangements(spring_row, broken_spring_row):
+    global possible_arrangement_cache
 
+    broken_spring_row_tuple = tuple(broken_spring_row)
 
-def generate_spring_arrangements(spring_row, broken_spring_row, string_so_far):
-    if spring_row == "":
-        return [string_so_far]
+    if (spring_row, broken_spring_row_tuple) in possible_arrangement_cache:
+        return possible_arrangement_cache[(spring_row, broken_spring_row_tuple)]
 
-    spring_arrangements = []
+    if len(broken_spring_row) == 0:
+        if spring_row.count('b') > 0:
+            return 0
+        else:
+            return 1
+    elif spring_row == "":
+        return 0
 
     num_broken_springs = sum(broken_spring_row)
 
     if num_broken_springs + len(broken_spring_row) - 1 > len(spring_row):
-        return []
+        return 0
 
     if num_broken_springs > spring_row.count('b') + spring_row.count('u'):
-        return []
+        return 0
 
     if spring_row == 'g':
         if num_broken_springs == 0:
-            return ["g"]
+            return 1
         else:
-            return []
-
-    if len(broken_spring_row) == 0:
-        if spring_row.count('b') > 0:
-            return []
-        else:
-            return [spring_row.replace('u', 'g')]
+            return 0
 
     if (len(broken_spring_row) == 1 and
             re.match('^[bu]{' + str(num_broken_springs) + '}$', spring_row)):
-        return [spring_row.replace('u', 'b')]
+        return 1
 
     this_char = spring_row[0]
+    num_possible_arrangements = 0
 
     match this_char:
         case 'g':
-            string_so_far += "g"
-            spring_arrangements.extend(generate_spring_arrangements(spring_row[1:], broken_spring_row, string_so_far))
+            num_possible_arrangements = generate_spring_arrangements(
+                spring_row[1:],
+                broken_spring_row)
 
         case 'b':
             num_broken = broken_spring_row[0]
 
             if re.match('^[bu]{' + str(num_broken) + '}[gu]', spring_row):
-                string_so_far += ('b' * num_broken) + 'g'
-                spring_arrangements.extend(
-                    generate_spring_arrangements(spring_row[num_broken + 1:],
-                                                 broken_spring_row[1:],
-                                                 string_so_far))
+                num_possible_arrangements = generate_spring_arrangements(
+                    spring_row[num_broken + 1:],
+                    broken_spring_row[1:])
             else:
-                return []
+                return 0
+
         case 'u':
-            if len(broken_spring_row) > 0:
-                num_broken = broken_spring_row[0]
+            num_broken = broken_spring_row[0]
 
-                if re.search('^[bu]{' + str(num_broken) + '}[gu]', spring_row):
-                    string_so_far_assuming_broken = string_so_far + ('b' * num_broken) + 'g'
+            if re.search('^[bu]{' + str(num_broken) + '}[gu]', spring_row):
+                num_possible_arrangements = generate_spring_arrangements(
+                    spring_row[num_broken + 1:],
+                    broken_spring_row[1:])
 
-                    sub_arrangements = generate_spring_arrangements(spring_row[num_broken + 1:],
-                                                                    broken_spring_row[1:],
-                                                                    string_so_far_assuming_broken)
-                    spring_arrangements.extend(sub_arrangements)
+            num_possible_arrangements += generate_spring_arrangements(
+                spring_row[1:],
+                broken_spring_row)
 
-            string_so_far_assuming_good = string_so_far + "g"
+    possible_arrangement_cache.update({(spring_row, broken_spring_row_tuple): num_possible_arrangements})
 
-            spring_arrangements.extend(
-                generate_spring_arrangements(spring_row[1:],
-                                             broken_spring_row,
-                                             string_so_far_assuming_good))
-
-    return spring_arrangements
+    return num_possible_arrangements
 
 
-def determine_possible_arrangements(springs, broken_springs, patterns, num_damaged_springs):
-    possible_arrangements = []
+def determine_possible_arrangements(springs, broken_springs):
+    num_possible_arrangements = 0
 
     for row_num in range(len(springs)):
-        possible_arrangements.append([])
+        # if row_num % 10 == 0:
+        log(f"{row_num=}")
 
         spring_row = springs[row_num]
         broken_spring_row = broken_springs[row_num]
-        # pattern = patterns[row_num]
-        # damaged_spring_count = num_damaged_springs[row_num]
 
-        possible_arrangements.append(generate_spring_arrangements(spring_row, broken_spring_row, ""))
+        num_possible_arrangements += generate_spring_arrangements(spring_row, broken_spring_row)
 
-        # all_spring_arrangements = generate_spring_arrangements(spring_row, damaged_spring_count)
-        #
-        # for spring_arrangement in all_spring_arrangements:
-        #     if re.match(pattern, spring_arrangement):
-        #         possible_arrangements[row_num].append(spring_arrangement)
-
-    return possible_arrangements
+    return num_possible_arrangements
 
 
-def count_possible_arrangements(possible_arrangements):
-    total = 0
-
-    for spring_row_arrangements in possible_arrangements:
-        total += len(spring_row_arrangements)
-
-    return total
+# def count_possible_arrangements(possible_arrangements):
+#     total = 0
+#
+#     for spring_row_arrangements in possible_arrangements:
+#         total += len(spring_row_arrangements)
+#
+#     return total
 
 
 def part1(inputs):
-    springs, broken_springs, patterns, num_damaged_springs = parse_input(inputs)
-    possible_arrangements = determine_possible_arrangements(springs, broken_springs, patterns, num_damaged_springs)
-    return count_possible_arrangements(possible_arrangements)
+    springs, broken_springs = parse_input(inputs)
+    num_possible_arrangements = determine_possible_arrangements(springs, broken_springs)
+    return num_possible_arrangements
 
 
 def part2(inputs):
-    return 0
+    springs, broken_springs = parse_input(inputs, True)
+    num_possible_arrangements = determine_possible_arrangements(springs, broken_springs)
+    return num_possible_arrangements
 
 
 def run_tests():
