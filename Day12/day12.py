@@ -1,7 +1,7 @@
 import re
 
-TESTING = False
-PART = 2
+TESTING = True
+PART = 1
 OUTPUT_TO_CONSOLE = False
 
 possible_arrangement_cache = {}
@@ -83,12 +83,6 @@ def generate_spring_arrangements(spring_row, broken_spring_row):
     if num_broken_springs > spring_row.count('b') + spring_row.count('u'):
         return 0
 
-    if spring_row == 'g':
-        if num_broken_springs == 0:
-            return 1
-        else:
-            return 0
-
     if (len(broken_spring_row) == 1 and
             re.match('^[bu]{' + str(num_broken_springs) + '}$', spring_row)):
         return 1
@@ -142,15 +136,6 @@ def determine_possible_arrangements(springs, broken_springs):
         num_possible_arrangements += generate_spring_arrangements(spring_row, broken_spring_row)
 
     return num_possible_arrangements
-
-
-# def count_possible_arrangements(possible_arrangements):
-#     total = 0
-#
-#     for spring_row_arrangements in possible_arrangements:
-#         total += len(spring_row_arrangements)
-#
-#     return total
 
 
 def part1(inputs):
