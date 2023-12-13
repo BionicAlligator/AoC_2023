@@ -1,7 +1,7 @@
 import re
 
-TESTING = True
-PART = 1
+TESTING = False
+PART = 2
 OUTPUT_TO_CONSOLE = False
 
 possible_arrangement_cache = {}
@@ -41,22 +41,45 @@ def read_input(filename):
 
 def parse_input(inputs, folded=False):
     springs = []
-    broken_springs = []
+    damage_reports = []
 
     for row in inputs:
-        spring_string, broken_spring_string = row.split(" ")
+        spring_row, damage_report = row.split(" ")
 
         if folded:
-            spring_string = "?".join([spring_string] * 5)
-            broken_spring_string = ",".join([broken_spring_string] * 5)
+            spring_row = "?".join([spring_row] * 5)
+            damage_report = ",".join([damage_report] * 5)
 
-        springs.append(spring_string.replace('.', 'g').replace('?', 'u').replace('#', 'b'))
+        springs.append(spring_row.replace('.', 'g').replace('?', 'u').replace('#', 'b'))
 
-        broken_springs_on_row = [int(num) for num in broken_spring_string.split(',')]
+        broken_springs_on_row = [int(num) for num in damage_report.split(',')]
 
-        broken_springs.append(broken_springs_on_row)
+        damage_reports.append(broken_springs_on_row)
 
-    return springs, broken_springs
+    return springs, damage_reports
+
+
+def all_broken_springs_accounted_for(spring_row, broken_spring_row, num_broken_springs):
+    return ((len(broken_spring_row) == 0 and
+             spring_row.count('b') == 0) or
+            (len(broken_spring_row) == 1 and
+             re.match('^[bu]{' + str(num_broken_springs) + '}$', spring_row)))
+
+
+def unaccounted_for_broken_springs(spring_row, broken_spring_row):
+    return len(broken_spring_row) == 0 and spring_row.count('b') > 0
+
+
+def insufficient_broken_springs(spring_row, broken_spring_row):
+    return len(broken_spring_row) > 0 and spring_row == ""
+
+
+def insufficient_springs_remaining(spring_row, broken_spring_row, num_broken_springs):
+    return num_broken_springs + len(broken_spring_row) - 1 > len(spring_row)
+
+
+def insufficient_potentially_broken_springs_remaining(spring_row, num_broken_springs):
+    return num_broken_springs > spring_row.count('b') + spring_row.count('u')
 
 
 def generate_spring_arrangements(spring_row, broken_spring_row):
@@ -67,25 +90,22 @@ def generate_spring_arrangements(spring_row, broken_spring_row):
     if (spring_row, broken_spring_row_tuple) in possible_arrangement_cache:
         return possible_arrangement_cache[(spring_row, broken_spring_row_tuple)]
 
-    if len(broken_spring_row) == 0:
-        if spring_row.count('b') > 0:
-            return 0
-        else:
-            return 1
-    elif spring_row == "":
-        return 0
-
     num_broken_springs = sum(broken_spring_row)
 
-    if num_broken_springs + len(broken_spring_row) - 1 > len(spring_row):
-        return 0
-
-    if num_broken_springs > spring_row.count('b') + spring_row.count('u'):
-        return 0
-
-    if (len(broken_spring_row) == 1 and
-            re.match('^[bu]{' + str(num_broken_springs) + '}$', spring_row)):
+    if all_broken_springs_accounted_for(spring_row, broken_spring_row, num_broken_springs):
         return 1
+
+    if unaccounted_for_broken_springs(spring_row, broken_spring_row):
+        return 0
+
+    if insufficient_broken_springs(spring_row, broken_spring_row):
+        return 0
+
+    if insufficient_springs_remaining(spring_row, broken_spring_row, num_broken_springs):
+        return 0
+
+    if insufficient_potentially_broken_springs_remaining(spring_row, num_broken_springs):
+        return 0
 
     this_char = spring_row[0]
     num_possible_arrangements = 0
