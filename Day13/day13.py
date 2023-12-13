@@ -1,6 +1,6 @@
 TESTING = False
-PART = 1
-OUTPUT_TO_CONSOLE = False
+PART = 2
+OUTPUT_TO_CONSOLE = True
 
 
 def log(message, end="\n"):
@@ -84,25 +84,71 @@ def find_reflections(pattern, vertical=False):
     return 0
 
 
+def find_smudges(pattern, vertical=False):
+    if vertical:
+        log("Vertical: ", end="")
+        pattern = transpose(pattern)
+    else:
+        log("Horizontal: ", end="")
+
+    potential_smudge_rows = []
+
+    for index in range(1, len(pattern)):
+        reflectable_rows = min(index, len(pattern) - index)
+
+        forward_image = "".join(pattern[index:index + reflectable_rows])
+        backward_image = "".join(reversed(pattern[index - reflectable_rows:index]))
+
+        if abs(forward_image.count('#') - backward_image.count('#')) == 1:
+            diff_indices = []
+
+            for pos in range(len(forward_image)):
+                if forward_image[pos] != backward_image[pos]:
+                    diff_indices.append(pos)
+
+            if len(diff_indices) == 1:
+                log(f"Smudge found at ({index}, {diff_indices[0]})")
+                return index
+
+    log("No smudge found")
+    return 0
+
+
 def part1(inputs):
     patterns = parse_input(inputs)
 
     total = 0
 
     for pattern in patterns:
-        horizontal_reflections = find_reflections(pattern, False)
-        vertical_reflections = find_reflections(pattern, True)
+        horizontal_reflection = find_reflections(pattern, False)
+        vertical_reflection = find_reflections(pattern, True)
 
-        if horizontal_reflections == 0 and vertical_reflections == 0:
+        if horizontal_reflection == 0 and vertical_reflection == 0:
             print(f"No matches: {pattern}")
 
-        total += horizontal_reflections * 100 + vertical_reflections
+        total += horizontal_reflection * 100 + vertical_reflection
 
     return total
 
 
 def part2(inputs):
-    return
+    patterns = parse_input(inputs)
+
+    total = 0
+
+    for pattern in patterns:
+        orig_horizontal_reflection = find_reflections(pattern, False)
+        orig_vertical_reflection = find_reflections(pattern, True)
+
+        if orig_horizontal_reflection == 0 and orig_vertical_reflection == 0:
+            print(f"No matches: {pattern}")
+
+        new_horizontal_reflection = find_smudges(pattern, False)
+        new_vertical_reflection = find_smudges(pattern, True)
+
+        total += new_horizontal_reflection * 100 + new_vertical_reflection
+
+    return total
 
 
 def run_tests():
