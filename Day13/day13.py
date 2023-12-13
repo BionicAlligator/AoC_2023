@@ -54,12 +54,9 @@ def transpose(pattern):
     return ["".join(row) for row in map(list, zip(*pattern))]
 
 
-def find_reflections(pattern, vertical=False):
-    if vertical:
-        log("Vertical: ", end="")
+def find_reflections(pattern, direction="Horizontal", remove_smudges=False):
+    if direction == "Vertical":
         pattern = transpose(pattern)
-    else:
-        log("Horizontal: ", end="")
 
     for index in range(1, len(pattern)):
         reflectable_rows = min(index, len(pattern) - index)
@@ -67,80 +64,50 @@ def find_reflections(pattern, vertical=False):
         forward_image = "".join(pattern[index:index + reflectable_rows])
         backward_image = "".join(reversed(pattern[index - reflectable_rows:index]))
 
-        if forward_image == backward_image:
-            log(f"{forward_image} == {backward_image}  ", end="")
-            log(f"MATCH: {index}")
+        if remove_smudges:
+            if abs(forward_image.count('#') - backward_image.count('#')) == 1:
+                diff_indices = []
+
+                for pos in range(len(forward_image)):
+                    if forward_image[pos] != backward_image[pos]:
+                        diff_indices.append(pos)
+
+                if len(diff_indices) == 1:
+                    log(f"{direction}: Smudge found at ({index}, {diff_indices[0]})")
+                    return index
+
+        elif forward_image == backward_image:
+            log(f"{direction} reflection found at {index}: {forward_image}")
             return index
 
-    log("No matches")
     return 0
 
 
-def find_smudges(pattern, vertical=False):
-    if vertical:
-        log("Vertical: ", end="")
-        pattern = transpose(pattern)
-    else:
-        log("Horizontal: ", end="")
-
-    potential_smudge_rows = []
-
-    for index in range(1, len(pattern)):
-        reflectable_rows = min(index, len(pattern) - index)
-
-        forward_image = "".join(pattern[index:index + reflectable_rows])
-        backward_image = "".join(reversed(pattern[index - reflectable_rows:index]))
-
-        if abs(forward_image.count('#') - backward_image.count('#')) == 1:
-            diff_indices = []
-
-            for pos in range(len(forward_image)):
-                if forward_image[pos] != backward_image[pos]:
-                    diff_indices.append(pos)
-
-            if len(diff_indices) == 1:
-                log(f"Smudge found at ({index}, {diff_indices[0]})")
-                return index
-
-    log("No smudge found")
-    return 0
-
-
-def part1(inputs):
+def generate_reflection_summary(inputs, remove_smudges):
     patterns = parse_input(inputs)
 
     total = 0
 
-    for pattern in patterns:
-        horizontal_reflection = find_reflections(pattern, False)
-        vertical_reflection = find_reflections(pattern, True)
+    for pattern_num, pattern in enumerate(patterns):
+        log(f"Pattern #{pattern_num} - ", end = "")
+        horizontal_reflection = find_reflections(pattern, "Horizontal", remove_smudges)
+        vertical_reflection = find_reflections(pattern, "Vertical", remove_smudges)
 
         if horizontal_reflection == 0 and vertical_reflection == 0:
-            print(f"No matches: {pattern}")
+            print(f"UNEXPECTED: No reflections: {pattern}")
+            exit(1)
 
         total += horizontal_reflection * 100 + vertical_reflection
 
     return total
 
 
+def part1(inputs):
+    return generate_reflection_summary(inputs, False)
+
+
 def part2(inputs):
-    patterns = parse_input(inputs)
-
-    total = 0
-
-    for pattern in patterns:
-        orig_horizontal_reflection = find_reflections(pattern, False)
-        orig_vertical_reflection = find_reflections(pattern, True)
-
-        if orig_horizontal_reflection == 0 and orig_vertical_reflection == 0:
-            print(f"No matches: {pattern}")
-
-        new_horizontal_reflection = find_smudges(pattern, False)
-        new_vertical_reflection = find_smudges(pattern, True)
-
-        total += new_horizontal_reflection * 100 + new_vertical_reflection
-
-    return total
+    return generate_reflection_summary(inputs, True)
 
 
 def run_tests():
