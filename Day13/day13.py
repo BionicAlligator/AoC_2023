@@ -1,6 +1,6 @@
 TESTING = False
 PART = 2
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
 
 
 def log(message, end="\n"):
@@ -29,6 +29,12 @@ def read_tests(test_filename):
     return tests
 
 
+def read_input(filename):
+    file = open(filename, "r")
+    lines = [line.rstrip() for line in file]
+    return lines
+
+
 def parse_input(inputs):
     patterns = []
     pattern_rows = []
@@ -44,22 +50,8 @@ def parse_input(inputs):
     return patterns
 
 
-def read_input(filename):
-    file = open(filename, "r")
-    lines = [line.rstrip() for line in file]
-    return lines
-
-
 def transpose(pattern):
-    transposed_pattern = list(map(list, zip(*pattern)))
-
-    transposed_pattern_strings = []
-
-    for row in transposed_pattern:
-        row_as_string = "".join(row)
-        transposed_pattern_strings.append(row_as_string)
-
-    return transposed_pattern_strings
+    return ["".join(row) for row in map(list, zip(*pattern))]
 
 
 def find_reflections(pattern, vertical=False):
