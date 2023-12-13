@@ -1,6 +1,6 @@
-TESTING = True
+TESTING = False
 PART = 1
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
 
 
 def log(message, end="\n"):
@@ -20,7 +20,7 @@ def read_tests(test_filename):
             expected = line.split("=")[1].lstrip()
         elif line.rstrip().endswith("="):
             expected = line.split("=")[0].rstrip()
-        elif not line.strip():  # Blank line means end of test specification
+        elif line.strip() == "END":  # "END" means end of test specification
             tests.append((expected, inputs.copy()))
             inputs = []
         else:
@@ -29,14 +29,76 @@ def read_tests(test_filename):
     return tests
 
 
+def parse_input(inputs):
+    patterns = []
+    pattern_rows = []
+
+    for line in inputs:
+        if line == "":
+            patterns.append(pattern_rows)
+            pattern_rows = []
+        else:
+            pattern_rows.append(line)
+
+    patterns.append(pattern_rows)
+    return patterns
+
+
 def read_input(filename):
     file = open(filename, "r")
     lines = [line.rstrip() for line in file]
     return lines
 
 
+def transpose(pattern):
+    transposed_pattern = list(map(list, zip(*pattern)))
+
+    transposed_pattern_strings = []
+
+    for row in transposed_pattern:
+        row_as_string = "".join(row)
+        transposed_pattern_strings.append(row_as_string)
+
+    return transposed_pattern_strings
+
+
+def find_reflections(pattern, vertical=False):
+    if vertical:
+        log("Vertical: ", end="")
+        pattern = transpose(pattern)
+    else:
+        log("Horizontal: ", end="")
+
+    for index in range(1, len(pattern)):
+        reflectable_rows = min(index, len(pattern) - index)
+
+        forward_image = "".join(pattern[index:index + reflectable_rows])
+        backward_image = "".join(reversed(pattern[index - reflectable_rows:index]))
+
+        if forward_image == backward_image:
+            log(f"{forward_image} == {backward_image}  ", end="")
+            log(f"MATCH: {index}")
+            return index
+
+    log("No matches")
+    return 0
+
+
 def part1(inputs):
-    return
+    patterns = parse_input(inputs)
+
+    total = 0
+
+    for pattern in patterns:
+        horizontal_reflections = find_reflections(pattern, False)
+        vertical_reflections = find_reflections(pattern, True)
+
+        if horizontal_reflections == 0 and vertical_reflections == 0:
+            print(f"No matches: {pattern}")
+
+        total += horizontal_reflections * 100 + vertical_reflections
+
+    return total
 
 
 def part2(inputs):
