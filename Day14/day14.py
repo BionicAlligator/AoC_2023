@@ -1,6 +1,11 @@
 TESTING = False
-PART = 1
-OUTPUT_TO_CONSOLE = True
+PART = 2
+OUTPUT_TO_CONSOLE = False
+
+TOTAL_SPINS = 1000000000
+
+tilt_result_cache = {}
+spin_result_cache = {}
 
 
 def log(message, end="\n"):
@@ -51,11 +56,28 @@ def transpose(platform):
     return [[row[i] for row in platform] for i in range(len(platform[0]))]
 
 
-def tilt(platform, direction="north"):
-    tilted_platform = []
+def reverse_rows(platform):
+    return [list(reversed(row)) for row in platform]
 
+
+def convert_to_string(platform):
+    return "".join((pos for row in platform for pos in row))
+
+
+def tilt(platform, direction="north"):
     if direction == "north":
         platform = transpose(platform)
+    if direction == "east":
+        platform = reverse_rows(platform)
+    if direction == "south":
+        platform = reverse_rows(transpose(platform))
+
+    platform_string = convert_to_string(platform)
+
+    if (direction, platform_string) in tilt_result_cache:
+        tilted_platform = tilt_result_cache[(direction, platform_string)]
+    else:
+        tilted_platform = []
 
         for row_num, row in enumerate(platform):
             tilted_platform.append([])
@@ -80,9 +102,17 @@ def tilt(platform, direction="north"):
                         else:
                             tilted_platform[row_num].append('O')
 
+        tilt_result_cache.update({(direction, platform_string): tilted_platform})
+
+    if direction == "north":
+        tilted_platform = transpose(tilted_platform)
+    if direction == "east":
+        tilted_platform = reverse_rows(tilted_platform)
+    if direction == "south":
+        tilted_platform = reverse_rows(tilted_platform)
         tilted_platform = transpose(tilted_platform)
 
-    log(f"{tilted_platform}")
+    log(f"{direction}: {tilted_platform}")
 
     return tilted_platform
 
@@ -117,7 +147,42 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    platform = parse_input(inputs)
+
+    been_here_before = False
+
+    spin_num = 0
+
+    while spin_num < TOTAL_SPINS:
+        if spin_num % 1000000 == 0:
+            print(f"{spin_num=}")
+
+        platform_string = convert_to_string(platform)
+
+        if not been_here_before and platform_string in spin_result_cache:
+            been_here_before = True
+            tilted_platform, last_here_spin_num = spin_result_cache[platform_string]
+            spins_between_cycles = spin_num - last_here_spin_num
+            spin_num = TOTAL_SPINS - (TOTAL_SPINS - last_here_spin_num) % spins_between_cycles
+        else:
+            tilted_platform = tilt(platform, "north")
+            tilted_platform = tilt(tilted_platform, "west")
+            tilted_platform = tilt(tilted_platform, "south")
+            tilted_platform = tilt(tilted_platform, "east")
+
+            spin_result_cache.update({platform_string: (tilted_platform, spin_num)})
+
+        if platform == tilted_platform:
+            break
+
+        platform = tilted_platform
+
+        spin_num += 1
+
+    round_rock_positions = extract_rock_positions(platform)
+    load = calc_load(round_rock_positions)
+
+    return load
 
 
 def run_tests():
