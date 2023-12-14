@@ -4,9 +4,6 @@ OUTPUT_TO_CONSOLE = False
 
 TOTAL_SPINS = 1000000000
 
-tilt_result_cache = {}
-spin_result_cache = {}
-
 
 def log(message, end="\n"):
     if OUTPUT_TO_CONSOLE:
@@ -41,15 +38,7 @@ def read_input(filename):
 
 
 def parse_input(inputs):
-    platform = []
-
-    for y, row in enumerate(inputs):
-        platform.append([])
-
-        for x, pos in enumerate(row):
-            platform[y].append(pos)
-
-    return platform
+    return [[pos for pos in row] for row in inputs]
 
 
 def transpose(platform):
@@ -72,37 +61,30 @@ def tilt(platform, direction="north"):
     if direction == "south":
         platform = reverse_rows(transpose(platform))
 
-    platform_string = convert_to_string(platform)
+    tilted_platform = []
 
-    if (direction, platform_string) in tilt_result_cache:
-        tilted_platform = tilt_result_cache[(direction, platform_string)]
-    else:
-        tilted_platform = []
+    for row_num, row in enumerate(platform):
+        tilted_platform.append([])
+        empty_positions = []
 
-        for row_num, row in enumerate(platform):
-            tilted_platform.append([])
-            empty_positions = []
+        for column_num, pos in enumerate(row):
+            match pos:
+                case '#':
+                    empty_positions = []
+                    tilted_platform[row_num].append('#')
 
-            for column_num, pos in enumerate(row):
-                match pos:
-                    case '#':
-                        empty_positions = []
-                        tilted_platform[row_num].append('#')
+                case '.':
+                    empty_positions.append(column_num)
+                    tilted_platform[row_num].append('.')
 
-                    case '.':
+                case 'O':
+                    if len(empty_positions) > 0:
+                        new_rock_pos = empty_positions.pop(0)
+                        tilted_platform[row_num][new_rock_pos] = 'O'
                         empty_positions.append(column_num)
                         tilted_platform[row_num].append('.')
-
-                    case 'O':
-                        if len(empty_positions) > 0:
-                            new_rock_pos = empty_positions.pop(0)
-                            tilted_platform[row_num][new_rock_pos] = 'O'
-                            empty_positions.append(column_num)
-                            tilted_platform[row_num].append('.')
-                        else:
-                            tilted_platform[row_num].append('O')
-
-        tilt_result_cache.update({(direction, platform_string): tilted_platform})
+                    else:
+                        tilted_platform[row_num].append('O')
 
     if direction == "north":
         tilted_platform = transpose(tilted_platform)
@@ -113,30 +95,33 @@ def tilt(platform, direction="north"):
         tilted_platform = transpose(tilted_platform)
 
     log(f"{direction}: {tilted_platform}")
-
     return tilted_platform
 
 
 def extract_rock_positions(platform, rock_type='O'):
-    rock_positions = []
-
-    for row_num, row in enumerate(reversed(platform)):
-        for column_num, pos in enumerate(row):
-            if pos == rock_type:
-                rock_positions.append((row_num + 1, column_num))
-
-    log(f"{rock_positions =}")
-
-    return rock_positions
+    return [(row_num + 1, column_num)
+            for row_num, row in enumerate(reversed(platform))
+            for column_num, pos in enumerate(row)
+            if pos == rock_type]
 
 
 def calc_load(rock_positions):
-    total = 0
+    return sum([y for y, _ in rock_positions])
 
-    for y, x in rock_positions:
-        total += y
 
-    return total
+def spin_platform(platform):
+    tilted_platform = tilt(platform, "north")
+    tilted_platform = tilt(tilted_platform, "west")
+    tilted_platform = tilt(tilted_platform, "south")
+    tilted_platform = tilt(tilted_platform, "east")
+    return tilted_platform
+
+
+def fast_forward_to_end(platform_string, spin_num, spin_results):
+    tilted_platform, last_here_spin_num = spin_results[platform_string]
+    spins_between_cycles = spin_num - last_here_spin_num
+    spin_num = TOTAL_SPINS - (TOTAL_SPINS - last_here_spin_num) % spins_between_cycles
+    return spin_num, tilted_platform
 
 
 def part1(inputs):
@@ -149,40 +134,25 @@ def part1(inputs):
 def part2(inputs):
     platform = parse_input(inputs)
 
+    spin_results = {}
     been_here_before = False
-
     spin_num = 0
 
     while spin_num < TOTAL_SPINS:
-        if spin_num % 1000000 == 0:
-            print(f"{spin_num=}")
-
         platform_string = convert_to_string(platform)
 
-        if not been_here_before and platform_string in spin_result_cache:
+        if not been_here_before and platform_string in spin_results:
             been_here_before = True
-            tilted_platform, last_here_spin_num = spin_result_cache[platform_string]
-            spins_between_cycles = spin_num - last_here_spin_num
-            spin_num = TOTAL_SPINS - (TOTAL_SPINS - last_here_spin_num) % spins_between_cycles
+            spin_num, platform = fast_forward_to_end(platform_string, spin_num, spin_results)
         else:
-            tilted_platform = tilt(platform, "north")
-            tilted_platform = tilt(tilted_platform, "west")
-            tilted_platform = tilt(tilted_platform, "south")
-            tilted_platform = tilt(tilted_platform, "east")
-
-            spin_result_cache.update({platform_string: (tilted_platform, spin_num)})
-
-        if platform == tilted_platform:
-            break
-
-        platform = tilted_platform
+            platform = spin_platform(platform)
+            spin_results.update({platform_string: (platform, spin_num)})
 
         spin_num += 1
 
     round_rock_positions = extract_rock_positions(platform)
-    load = calc_load(round_rock_positions)
 
-    return load
+    return calc_load(round_rock_positions)
 
 
 def run_tests():
