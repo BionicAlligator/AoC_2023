@@ -90,6 +90,8 @@ def initialise_facility(instructions):
     boxes = [OrderedDict() for box_num in range(256)]
 
     for instruction in instructions:
+        log(f"{instruction}")
+
         box = boxes[instruction.box]
 
         match instruction.operation:
@@ -123,12 +125,7 @@ def part1(inputs):
 
 def part2(inputs):
     instructions = parse_input(inputs, False)
-
-    for instruction in instructions:
-        log(f"{instruction}")
-
     boxes = initialise_facility(instructions)
-
     return focusing_power(boxes)
 
 
