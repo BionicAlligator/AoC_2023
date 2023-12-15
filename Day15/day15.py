@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 TESTING = False
 PART = 2
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
 
 
 class Instruction:
@@ -59,19 +59,20 @@ def read_input(filename):
 def parse_input(inputs, hash_check=True):
     steps = inputs[0].split(",")
 
+    if hash_check:
+        return steps
+
     instructions = []
 
     for step in steps:
         result = re.search(r'^([a-z]+)([=-])(\d*)$', step)
         instructions.append(Instruction(result.groups()))
 
-    return steps if hash_check else instructions
+    return instructions
 
 
 def apply_hash(step):
     hash_value = 0
-
-    log(f"{step}")
 
     for char in step:
         hash_value += ord(char)
