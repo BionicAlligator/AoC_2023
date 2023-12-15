@@ -1,4 +1,4 @@
-TESTING = True
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
@@ -35,8 +35,32 @@ def read_input(filename):
     return lines
 
 
+def parse_input(inputs):
+    return inputs[0].split(",")
+
+
+def apply_hash(step):
+    hash_value = 0
+
+    for char in step:
+        hash_value += ord(char)
+        hash_value *= 17
+        hash_value %= 256
+
+    return hash_value
+
+
+def hash_sequence(init_sequence):
+    hashed_sequence = []
+
+    hashed_sequence = [apply_hash(step) for step in init_sequence]
+    return hashed_sequence
+
+
 def part1(inputs):
-    return
+    init_sequence = parse_input(inputs)
+    hashed_sequence = hash_sequence(init_sequence)
+    return sum(hashed_sequence)
 
 
 def part2(inputs):
