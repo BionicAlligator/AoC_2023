@@ -1,6 +1,25 @@
-TESTING = True
+import sys
+
+TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
+
+sys.setrecursionlimit(2000)
+
+
+class Tile:
+    def __init__(self, tile_type):
+        self.tile_type = tile_type
+        self.beams = {(0, 1): 0, (0, -1): 0, (1, 0): 0, (-1, 0): 0}
+
+    def __str__(self):
+        return f'{self.tile_type} {self.beams[(0, 1)]}> {self.beams[(0, -1)]}< {self.beams[(1, 0)]}v {self.beams[(-1, 0)]}^'
+
+    def energy_level(self, direction=None):
+        if direction:
+            return self.beams[direction]
+        else:
+            return sum(self.beams.values())
 
 
 def log(message, end="\n"):
@@ -35,8 +54,119 @@ def read_input(filename):
     return lines
 
 
+def parse_input(inputs):
+    grid = []
+
+    for y, row in enumerate(inputs):
+        grid.append([])
+
+        for x, tile in enumerate(row):
+            grid[y].append(Tile(tile))
+
+    return grid
+
+
+def print_grid(grid, verbose=False):
+    for row in grid:
+        for tile in row:
+            if verbose:
+                log(f"{tile}  ", end="")
+            else:
+                log(f"{tile.tile_type}", end="")
+
+        log("")
+
+
+def track_beam(grid, start_point, direction):
+    y, x = start_point
+    dir_y, dir_x = direction
+
+    if y < 0 or x < 0 or y >= len(grid) or x >= len(grid[0]):
+        return grid
+
+    tile = grid[y][x]
+
+    if tile.energy_level(direction) > 0:
+        return grid
+
+    tile.beams[direction] += 1
+
+    while tile.tile_type == '.':
+        next_y = y + dir_y
+        next_x = x + dir_x
+
+        if next_y < 0 or next_x < 0 or next_y >= len(grid) or next_x >= len(grid[0]):
+            return grid
+
+        y = next_y
+        x = next_x
+
+        tile = grid[y][x]
+
+        if tile.energy_level(direction) > 0:
+            return grid
+
+        tile.beams[direction] += 1
+
+    match tile.tile_type:
+        case '/':
+            new_dir_y = -dir_x
+            new_dir_x = -dir_y
+            new_direction = (new_dir_y, new_dir_x)
+
+            # tile.beams[new_direction] += 1
+
+            return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
+
+        case '\\':
+            new_dir_y = dir_x
+            new_dir_x = dir_y
+            new_direction = (new_dir_y, new_dir_x)
+
+            # tile.beams[new_direction] += 1
+
+            return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
+
+        case '|':
+            if dir_x == 0:
+                return track_beam(grid, (y + dir_y, x + dir_x), direction)
+            else:
+                # tile.beams[(-1, 0)] += 1
+                # tile.beams[(1, 0)] += 1
+
+                grid = track_beam(grid, (y - 1, x), (-1, 0))
+                return track_beam(grid, (y + 1, x), (1, 0))
+
+        case '-':
+            if dir_y == 0:
+                return track_beam(grid, (y + dir_y, x + dir_x), direction)
+            else:
+                # tile.beams[(0, -1)] += 1
+                # tile.beams[(0, 1)] += 1
+
+                grid = track_beam(grid, (y, x - 1), (0, -1))
+                return track_beam(grid, (y, x + 1), (0, 1))
+
+    return grid
+
+
+def count_energised_tiles(grid):
+    total = 0
+
+    for row in grid:
+        for tile in row:
+            if tile.energy_level() > 0:
+                total += 1
+
+    return total
+
+
 def part1(inputs):
-    return
+    grid = parse_input(inputs)
+    print_grid(grid, False)
+    grid = track_beam(grid, (0, 0), (0, 1))
+    print_grid(grid, True)
+    return count_energised_tiles(grid)
 
 
 def part2(inputs):
