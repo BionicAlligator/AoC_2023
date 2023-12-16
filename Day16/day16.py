@@ -9,16 +9,21 @@ OUTPUT_TO_CONSOLE = True
 class Tile:
     def __init__(self, tile_type):
         self.tile_type = tile_type
-        self.beams = {(0, 1): 0, (0, -1): 0, (1, 0): 0, (-1, 0): 0}
+        self.onward_path = None
+        self.caching = False
 
     def __str__(self):
-        return f'{self.tile_type} {self.beams[(0, 1)]}> {self.beams[(0, -1)]}< {self.beams[(1, 0)]}v {self.beams[(-1, 0)]}^'
+        return f'{self.tile_type}'
 
-    def energy_level(self, direction=None):
-        if direction:
-            return self.beams[direction]
-        else:
-            return sum(self.beams.values())
+    def cache_onward_path(self, grid, y, x):
+        if self.tile_type == '|':
+            onward_path1 = follow_path(grid, (y - 1, x), (-1, 0), [])
+            onward_path2 = follow_path(grid, (y + 1, x), (1, 0), [])
+            self.onward_path = onward_path1.union(onward_path2)
+        elif self.tile_type == '-':
+            onward_path1 = follow_path(grid, (y, x - 1), (0, -1), [])
+            onward_path2 = follow_path(grid, (y, x + 1), (0, 1), [])
+            self.onward_path = onward_path1.union(onward_path2)
 
 
 def log(message, end="\n"):
@@ -76,36 +81,49 @@ def print_grid(grid, verbose=False):
         log("")
 
 
-def track_beam(grid, start_point, direction):
+def print_path(grid, path):
+    for y, row in enumerate(grid):
+        for x, tile in enumerate(row):
+            if (y, x) in path:
+                log("#", end="")
+            else:
+                log(".", end="")
+
+        log("")
+
+
+def within_bounds(grid, y, x):
+    return 0 <= y < len(grid) and 0 <= x < len(grid[0])
+
+
+def follow_path(grid, start_point, direction, visited):
+    path = set()
+
+    if (start_point, direction) in visited:
+        return path
+
+    visited.append((start_point, direction))
+
     y, x = start_point
     dir_y, dir_x = direction
 
-    if y < 0 or x < 0 or y >= len(grid) or x >= len(grid[0]):
-        return grid
+    if not within_bounds(grid, y, x):
+        return path
+
+    path.add((y, x))
 
     tile = grid[y][x]
 
-    if tile.energy_level(direction) > 0:
-        return grid
-
-    tile.beams[direction] += 1
-
     while tile.tile_type == '.':
-        next_y = y + dir_y
-        next_x = x + dir_x
+        y += dir_y
+        x += dir_x
 
-        if next_y < 0 or next_x < 0 or next_y >= len(grid) or next_x >= len(grid[0]):
-            return grid
-
-        y = next_y
-        x = next_x
-
-        tile = grid[y][x]
-
-        if tile.energy_level(direction) > 0:
-            return grid
-
-        tile.beams[direction] += 1
+        if within_bounds(grid, y, x):
+            visited.append(((y, x), direction))
+            path.add((y, x))
+            tile = grid[y][x]
+        else:
+            return path
 
     match tile.tile_type:
         case '/':
@@ -113,49 +131,70 @@ def track_beam(grid, start_point, direction):
             new_dir_x = -dir_y
             new_direction = (new_dir_y, new_dir_x)
 
-            return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
+            onward_path = follow_path(grid, (y + new_dir_y, x + new_dir_x), new_direction, visited)
+            return path.union(onward_path)
 
         case '\\':
             new_dir_y = dir_x
             new_dir_x = dir_y
             new_direction = (new_dir_y, new_dir_x)
 
-            return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
+            onward_path = follow_path(grid, (y + new_dir_y, x + new_dir_x), new_direction, visited)
+            return path.union(onward_path)
 
         case '|':
             if dir_x == 0:
-                return track_beam(grid, (y + dir_y, x + dir_x), direction)
+                onward_path = follow_path(grid, (y + dir_y, x + dir_x), direction, visited)
+                return path.union(onward_path)
             else:
-                grid = track_beam(grid, (y - 1, x), (-1, 0))
-                return track_beam(grid, (y + 1, x), (1, 0))
+                if tile.onward_path:
+                    return path.union(tile.onward_path)
+
+                if tile.caching:
+                    return path
+
+                tile.cache_onward_path(grid, y, x)
+                return path.union(tile.onward_path)
+
+                # onward_path1 = follow_path(grid, (y - 1, x), (-1, 0), visited)
+                # onward_path2 = follow_path(grid, (y + 1, x), (1, 0), visited)
+                # # tile.onward_path = onward_path1.union(onward_path2)
+                # return path.union(onward_path1).union(onward_path2)
 
         case '-':
             if dir_y == 0:
-                return track_beam(grid, (y + dir_y, x + dir_x), direction)
+                onward_path = follow_path(grid, (y + dir_y, x + dir_x), direction, visited)
+                return path.union(onward_path)
             else:
-                grid = track_beam(grid, (y, x - 1), (0, -1))
-                return track_beam(grid, (y, x + 1), (0, 1))
+                if tile.onward_path:
+                    return path.union(tile.onward_path)
 
-    return grid
+                if tile.caching:
+                    return path
+
+                tile.cache_onward_path(grid, y, x)
+                return path.union(tile.onward_path)
+
+                # onward_path1 = follow_path(grid, (y, x - 1), (0, -1), visited)
+                # onward_path2 = follow_path(grid, (y, x + 1), (0, 1), visited)
+                # # tile.onward_path = onward_path1.union(onward_path2)
+                # return path.union(onward_path1).union(onward_path2)
+
+    log(f"Unknown Tile Type: Aborting")
+    exit(1)
 
 
-def count_energised_tiles(grid):
-    total = 0
-
-    for row in grid:
-        for tile in row:
-            if tile.energy_level() > 0:
-                total += 1
-
-    return total
+def clear_cached_onward_paths(grid):
+    for y, row in enumerate(grid):
+        for x, tile in enumerate(row):
+            tile.onward_path = None
 
 
 def part1(inputs):
     grid = parse_input(inputs)
     print_grid(grid, False)
-    grid = track_beam(grid, (0, 0), (0, 1))
-    print_grid(grid, True)
-    return count_energised_tiles(grid)
+    path = follow_path(grid, (0, 0), (0, 1), [])
+    return len(path)
 
 
 def part2(inputs):
@@ -167,25 +206,18 @@ def part2(inputs):
         if start_y % 10 == 0:
             log(f"{start_y=}")
 
-        test_grid = deepcopy(grid)
-        test_grid = track_beam(test_grid, (start_y, 0), (0, 1))
-        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
-
-        test_grid = deepcopy(grid)
-        test_grid = track_beam(test_grid, (start_y, len(grid[0]) - 1), (0, -1))
-        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+        max_energised_tiles = max(max_energised_tiles, len(follow_path(grid, (start_y, 0), (0, 1), [])))
+        max_energised_tiles = max(max_energised_tiles, len(follow_path(grid, (start_y, len(grid[0]) - 1), (0, -1), [])))
 
     for start_x in range(len(grid[0])):
         if start_x % 10 == 0:
             log(f"{start_x=}")
 
-        test_grid = deepcopy(grid)
-        test_grid = track_beam(test_grid, (0, start_x), (1, 0))
-        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
-
-        test_grid = deepcopy(grid)
-        test_grid = track_beam(test_grid, (len(grid) - 1, start_x), (-1, 0))
-        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+        path_length = len(follow_path(grid, (0, start_x), (1, 0), []))
+        if start_x == 3:
+            log(f"{path_length =}")
+        max_energised_tiles = max(max_energised_tiles, len(follow_path(grid, (0, start_x), (1, 0), [])))
+        max_energised_tiles = max(max_energised_tiles, len(follow_path(grid, (len(grid) - 1, start_x), (-1, 0), [])))
 
     return max_energised_tiles
 
