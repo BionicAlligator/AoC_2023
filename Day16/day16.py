@@ -1,10 +1,9 @@
 import sys
+from copy import deepcopy
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
-
-sys.setrecursionlimit(2000)
 
 
 class Tile:
@@ -114,8 +113,6 @@ def track_beam(grid, start_point, direction):
             new_dir_x = -dir_y
             new_direction = (new_dir_y, new_dir_x)
 
-            # tile.beams[new_direction] += 1
-
             return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
 
         case '\\':
@@ -123,17 +120,12 @@ def track_beam(grid, start_point, direction):
             new_dir_x = dir_y
             new_direction = (new_dir_y, new_dir_x)
 
-            # tile.beams[new_direction] += 1
-
             return track_beam(grid, (y + new_dir_y, x + new_dir_x), new_direction)
 
         case '|':
             if dir_x == 0:
                 return track_beam(grid, (y + dir_y, x + dir_x), direction)
             else:
-                # tile.beams[(-1, 0)] += 1
-                # tile.beams[(1, 0)] += 1
-
                 grid = track_beam(grid, (y - 1, x), (-1, 0))
                 return track_beam(grid, (y + 1, x), (1, 0))
 
@@ -141,9 +133,6 @@ def track_beam(grid, start_point, direction):
             if dir_y == 0:
                 return track_beam(grid, (y + dir_y, x + dir_x), direction)
             else:
-                # tile.beams[(0, -1)] += 1
-                # tile.beams[(0, 1)] += 1
-
                 grid = track_beam(grid, (y, x - 1), (0, -1))
                 return track_beam(grid, (y, x + 1), (0, 1))
 
@@ -170,7 +159,35 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    max_energised_tiles = 0
+
+    grid = parse_input(inputs)
+
+    for start_y in range(len(grid)):
+        if start_y % 10 == 0:
+            log(f"{start_y=}")
+
+        test_grid = deepcopy(grid)
+        test_grid = track_beam(test_grid, (start_y, 0), (0, 1))
+        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+
+        test_grid = deepcopy(grid)
+        test_grid = track_beam(test_grid, (start_y, len(grid[0]) - 1), (0, -1))
+        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+
+    for start_x in range(len(grid[0])):
+        if start_x % 10 == 0:
+            log(f"{start_x=}")
+
+        test_grid = deepcopy(grid)
+        test_grid = track_beam(test_grid, (0, start_x), (1, 0))
+        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+
+        test_grid = deepcopy(grid)
+        test_grid = track_beam(test_grid, (len(grid) - 1, start_x), (-1, 0))
+        max_energised_tiles = max(max_energised_tiles, count_energised_tiles(test_grid))
+
+    return max_energised_tiles
 
 
 def run_tests():
