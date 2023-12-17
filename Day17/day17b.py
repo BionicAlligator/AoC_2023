@@ -1,7 +1,7 @@
 from heapq import heapify, heappop, heappush
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -42,7 +42,7 @@ def parse_input(inputs):
     return city
 
 
-def find_path_with_lowest_heat_loss(city, start, end):
+def find_path_with_lowest_heat_loss(city, start, end, ultra_crucible=False):
     NEIGHBOUR_OFFSETS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
     done = set()
@@ -60,10 +60,23 @@ def find_path_with_lowest_heat_loss(city, start, end):
         done.add((pos, direction_tracker))
 
         if pos == end:
+            if ultra_crucible and num_steps < 4:
+                continue
+
             return heat_loss_from_start
 
         for offset in NEIGHBOUR_OFFSETS:
-            if ((dir_y, dir_x) == offset and num_steps == 3) or (-dir_y, -dir_x) == offset:
+            if (-dir_y, -dir_x) == offset:
+                continue
+
+            if ultra_crucible:
+                if (dir_y, dir_x) == offset:
+                    if num_steps == 10:
+                        continue
+                else:
+                    if 0 < num_steps < 4:
+                        continue
+            elif (dir_y, dir_x) == offset and num_steps == 3:
                 continue
 
             offset_y, offset_x = offset
@@ -89,14 +102,16 @@ def part1(inputs):
     city = parse_input(inputs)
     lavapool = (0, 0)
     factory = (len(city) - 1, len(city[0]) - 1)
-
     total_heat_loss = find_path_with_lowest_heat_loss(city, lavapool, factory)
-
     return total_heat_loss
 
 
 def part2(inputs):
-    return
+    city = parse_input(inputs)
+    lavapool = (0, 0)
+    factory = (len(city) - 1, len(city[0]) - 1)
+    total_heat_loss = find_path_with_lowest_heat_loss(city, lavapool, factory, True)
+    return total_heat_loss
 
 
 def run_tests():

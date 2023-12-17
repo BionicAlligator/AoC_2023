@@ -1,3 +1,6 @@
+# NOT WORKING.  Attempt at an A* approach with object to represent nodes
+# Switched to standard Dijkstra using priority queue of tuples instead (see Day17b.py)
+
 from copy import copy
 
 TESTING = False
