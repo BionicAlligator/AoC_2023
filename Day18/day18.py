@@ -86,6 +86,8 @@ def volume(trench, trench_length, bounds):
     return lagoon_volume + trench_length
 
 
+# TODO: Use Pick's theorem instead of Shapely Polygon.contains
+# The latter is slow for a large polygon
 def part1(inputs):
     dig_plan = parse_input(inputs)
     trench, trench_length, bounds = dig_trench(dig_plan)
