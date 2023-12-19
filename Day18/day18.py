@@ -1,4 +1,4 @@
-from shapely import Polygon, Point
+from shapely import Polygon, Point, area
 
 TESTING = False
 PART = 1
@@ -53,24 +53,61 @@ def dig_trench(dig_plan):
     min_y = min_x = float('inf')
     max_y = max_x = float('-inf')
     y = x = 0
+    # y1 = x1 = 0
     coords = [(y, x)]
+    # coords1 = [(y1, x1)]
 
-    for dir, dist, _ in dig_plan:
-        trench_length += dist
-        match dir:
-            case 'R': x += dist
-            case 'L': x -= dist
-            case 'D': y += dist
-            case 'U': y -= dist
+    for instruction_num in range(len(dig_plan)):
+        dir, dist, colour = dig_plan[instruction_num]
+        prev_dir = dig_plan[(instruction_num - 1) % len(dig_plan)][0]
+        next_dir = dig_plan[(instruction_num + 1) % len(dig_plan)][0]
 
-        min_y = min(y, min_y)
-        min_x = min(x, min_x)
-        max_y = max(y, max_y)
-        max_x = max(x, max_x)
+        # trench_length += dist
+        match (prev_dir, dir, next_dir):
+            case 'D', 'R', 'D':
+                x += dist
+            case 'D', 'R', 'U':
+                x += (dist - 1)
+            case 'U', 'R', 'D':
+                x += (dist + 1)
+            case 'U', 'R', 'U':
+                x += dist
+
+            case 'D', 'L', 'D':
+                x -= dist
+            case 'D', 'L', 'U':
+                x -= (dist + 1)
+            case 'U', 'L', 'D':
+                x -= (dist - 1)
+            case 'U', 'L', 'U':
+                x -= dist
+
+            case 'R', 'D', 'R':
+                y += dist
+            case 'R', 'D', 'L':
+                y += (dist + 1)
+            case 'L', 'D', 'R':
+                y += (dist - 1)
+            case 'L', 'D', 'L':
+                y += dist
+
+            case 'R', 'U', 'R':
+                y -= dist
+            case 'R', 'U', 'L':
+                y -= (dist - 1)
+            case 'L', 'U', 'R':
+                y -= (dist + 1)
+            case 'L', 'U', 'L':
+                y -= dist
+
+            case prev, curr, next:
+                log(f"UNEXPECTED: {prev} -> {curr} -> {next}")
 
         coords.append((y, x))
+        # coords1.append((y1, x1))
 
-    return Polygon(coords), trench_length, (min_y, min_x, max_y, max_x)
+    log(f"{coords=}")
+    return Polygon(coords)
 
 
 def volume(trench, trench_length, bounds):
@@ -90,8 +127,8 @@ def volume(trench, trench_length, bounds):
 # The latter is slow for a large polygon
 def part1(inputs):
     dig_plan = parse_input(inputs)
-    trench, trench_length, bounds = dig_trench(dig_plan)
-    return volume(trench, trench_length, bounds)
+    trench = dig_trench(dig_plan)
+    return int(area(trench))
 
 
 def part2(inputs):
