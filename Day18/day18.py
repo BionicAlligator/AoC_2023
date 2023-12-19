@@ -1,7 +1,7 @@
-from shapely import Polygon, Point, area
+from shapely import Polygon, area
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -37,32 +37,37 @@ def read_input(filename):
     return lines
 
 
-def parse_input(inputs):
+def parse_input(inputs, use_hex=False):
+    DIRECTION_MAP = {0: 'R', 1: 'D', 2: 'L', 3: 'U'}
+
     dig_plan = []
 
-    for instruction in inputs:
-        direction, distance, colour = instruction.split(" ")
-        colour = colour.strip('(#)')
-        dig_plan.append((direction, int(distance), colour))
+    if not use_hex:
+        for instruction in inputs:
+            direction, distance, _ = instruction.split(" ")
+            dig_plan.append((direction, int(distance)))
+    else:
+        for instruction in inputs:
+            _, _, inst = instruction.split(" ")
+            inst = inst.strip('(#)')
+
+            direction = DIRECTION_MAP[int(inst[5])]
+            distance = int(inst[:5], 16)
+
+            dig_plan.append((direction, int(distance)))
 
     return dig_plan
 
 
 def dig_trench(dig_plan):
-    trench_length = 0
-    min_y = min_x = float('inf')
-    max_y = max_x = float('-inf')
     y = x = 0
-    # y1 = x1 = 0
     coords = [(y, x)]
-    # coords1 = [(y1, x1)]
 
     for instruction_num in range(len(dig_plan)):
-        dir, dist, colour = dig_plan[instruction_num]
+        dir, dist = dig_plan[instruction_num]
         prev_dir = dig_plan[(instruction_num - 1) % len(dig_plan)][0]
         next_dir = dig_plan[(instruction_num + 1) % len(dig_plan)][0]
 
-        # trench_length += dist
         match (prev_dir, dir, next_dir):
             case 'D', 'R', 'D':
                 x += dist
@@ -104,27 +109,11 @@ def dig_trench(dig_plan):
                 log(f"UNEXPECTED: {prev} -> {curr} -> {next}")
 
         coords.append((y, x))
-        # coords1.append((y1, x1))
 
     log(f"{coords=}")
     return Polygon(coords)
 
 
-def volume(trench, trench_length, bounds):
-    min_y, min_x, max_y, max_x = bounds
-
-    lagoon_volume = 0
-
-    for y in range(min_y, max_y + 1):
-        for x in range(min_x, max_x + 1):
-            if trench.contains(Point(y, x)):
-                lagoon_volume += 1
-
-    return lagoon_volume + trench_length
-
-
-# TODO: Use Pick's theorem instead of Shapely Polygon.contains
-# The latter is slow for a large polygon
 def part1(inputs):
     dig_plan = parse_input(inputs)
     trench = dig_trench(dig_plan)
@@ -132,7 +121,9 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    dig_plan = parse_input(inputs, True)
+    trench = dig_trench(dig_plan)
+    return int(area(trench))
 
 
 def run_tests():
