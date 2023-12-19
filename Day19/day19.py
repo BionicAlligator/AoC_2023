@@ -1,7 +1,7 @@
 import re
 
-TESTING = False
-PART = 1
+TESTING = True
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -20,6 +20,21 @@ class Workflow:
 
         return self.default
 
+    def apply_to_range(self, part_range):
+        resulting_part_ranges = []
+
+        for rule in self.rules:
+            additional_part_range, remaining_part_range = rule.apply_to_range(part_range)
+
+            if additional_part_range[1]:
+                resulting_part_ranges.append(additional_part_range)
+                part_range = remaining_part_range
+
+        if remaining_part_range:
+            resulting_part_ranges.append((self.default, remaining_part_range))
+
+        return resulting_part_ranges
+
 
 class Rule:
     def __init__(self, category, operator, threshold, next_workflow):
@@ -33,6 +48,36 @@ class Rule:
             return self.next_workflow
 
         return None
+
+    def apply_to_range(self, part_range):
+        resulting_part_range = part_range.copy()
+        remaining_part_range = part_range.copy()
+
+        range_min = int(part_range[self.category][0])
+        range_max = int(part_range[self.category][1])
+
+        if self.operator == '<':
+            matching_range_min = range_min
+            matching_range_max = min(range_max, int(self.threshold) - 1)
+            remaining_range_min = int(self.threshold)
+            remaining_range_max = range_max
+        else:
+            matching_range_min = max(range_max, int(self.threshold) + 1)
+            matching_range_max = range_max
+            remaining_range_min = range_min
+            remaining_range_max = int(self.threshold)
+
+        if 0 <= matching_range_min <= matching_range_max:
+            resulting_part_range.update({self.category: (str(matching_range_min), str(matching_range_max))})
+        else:
+            resulting_part_range = None
+
+        if 0 <= remaining_range_min <= remaining_range_max:
+            remaining_part_range.update({self.category: (str(remaining_range_min), str(remaining_range_max))})
+        else:
+            remaining_part_range = None
+
+        return (self.next_workflow, resulting_part_range), remaining_part_range
 
 
 def log(message, end="\n"):
@@ -56,6 +101,9 @@ def read_tests(test_filename):
             tests.append((expected, inputs.copy()))
             inputs = []
         else:
+            if not inputs and line.strip() == "":
+                continue
+
             inputs.append(line.rstrip())
 
     return tests
@@ -164,7 +212,7 @@ def sort_parts(workflows, parts):
 
 
 def rating_totals(parts):
-    rating_totals = []
+    totals = []
 
     for part in parts:
         rating_total = 0
@@ -172,9 +220,62 @@ def rating_totals(parts):
         for category, rating in part.items():
             rating_total += int(rating)
 
-        rating_totals.append(rating_total)
+        totals.append(rating_total)
 
-    return rating_totals
+    return totals
+
+
+# def merge_part_ranges(existing_part_ranges, additional_part_ranges):
+#     for workflow_name, part_range in additional_part_ranges:
+#         if workflow_name in existing_part_ranges:
+#             # Merge the ranges and update existing
+#
+#         else:
+#             existing_part_ranges.update({workflow_name: part_range})
+#
+#     return existing_part_ranges
+
+
+def sort_part_ranges(workflows):
+    part_ranges = [('in', {'x': (1, 4000), 'm': (1, 4000), 'a': (1, 4000), 's': (1, 4000)})]
+
+    while not all(part_range[0] in ['R', 'A'] for part_range in part_ranges):
+        new_part_ranges = []
+
+        for workflow_name, part_range in part_ranges:
+            if workflow_name in ['R', 'A']:
+                new_part_ranges.append((workflow_name, part_range))
+                continue
+
+            resulting_part_ranges = workflows[workflow_name].apply_to_range(part_range)
+            new_part_ranges.extend(resulting_part_ranges)
+
+        part_ranges = new_part_ranges
+
+    return [part_range[1] for part_range in part_ranges if part_range[0] == 'A']
+
+
+def determine_distinct_combinations(part_ranges):
+    distinct_combos = 0
+
+    while part_ranges:
+        part_range = part_ranges.pop()
+
+        if part_range in part_ranges:
+            continue
+
+        combos = 1
+
+        for category in part_range:
+            if int(part_range[category][1]) + 1 < int(part_range[category][0]):
+                log("UNEXPECTED: Negative part range")
+                exit(1)
+
+            combos = combos * (int(part_range[category][1]) + 1 - int(part_range[category][0]))
+
+        distinct_combos += combos
+
+    return distinct_combos
 
 
 def part1(inputs):
@@ -185,7 +286,10 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    workflows, parts = parse_input(inputs)
+    workflows = eliminate_passthroughs(workflows)
+    part_ranges = sort_part_ranges(workflows)
+    return determine_distinct_combinations(part_ranges)
 
 
 def run_tests():
