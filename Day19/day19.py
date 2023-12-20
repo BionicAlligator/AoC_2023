@@ -1,6 +1,6 @@
 import re
 
-TESTING = True
+TESTING = False
 PART = 2
 OUTPUT_TO_CONSOLE = True
 
@@ -62,7 +62,7 @@ class Rule:
             remaining_range_min = int(self.threshold)
             remaining_range_max = range_max
         else:
-            matching_range_min = max(range_max, int(self.threshold) + 1)
+            matching_range_min = max(range_min, int(self.threshold) + 1)
             matching_range_max = range_max
             remaining_range_min = range_min
             remaining_range_max = int(self.threshold)
@@ -223,17 +223,6 @@ def rating_totals(parts):
         totals.append(rating_total)
 
     return totals
-
-
-# def merge_part_ranges(existing_part_ranges, additional_part_ranges):
-#     for workflow_name, part_range in additional_part_ranges:
-#         if workflow_name in existing_part_ranges:
-#             # Merge the ranges and update existing
-#
-#         else:
-#             existing_part_ranges.update({workflow_name: part_range})
-#
-#     return existing_part_ranges
 
 
 def sort_part_ranges(workflows):

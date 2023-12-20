@@ -1,3 +1,7 @@
+# Added while in Austria (using different Python version/location and PyCharm version)
+*.iml
+misc.xml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
