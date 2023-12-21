@@ -1,0 +1,14 @@
+32000000=
+broadcaster -> a, b, c
+%a -> b
+%b -> c
+%c -> inv
+&inv -> a
+
+11687500=
+broadcaster -> a
+%a -> inv, con
+&inv -> b
+%b -> con
+&con -> output
+
