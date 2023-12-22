@@ -1,10 +1,14 @@
+import math
 from collections import deque
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
-NUM_STEPS = 6 if TESTING else 64
+PART_1_NUM_STEPS_TESTING = 6
+PART_1_NUM_STEPS = 64
+PART_2_NUM_STEPS_TESTING = 5000
+PART_2_NUM_STEPS = 26501365
 
 
 def log(message, end="\n"):
@@ -55,29 +59,26 @@ def parse_input(inputs):
     return garden, start
 
 
-def walk(garden, start):
+def walk(garden, start, num_steps):
     OFFSETS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     HEIGHT = len(garden)
     WIDTH = len(garden[0])
 
-    reachable = {start: 0}
+    reachable = {}
     unreachable = set()
     to_check = deque([(start, 0)])
 
     while to_check:
         (plot_y, plot_x), steps = to_check.popleft()
 
-        if steps >= NUM_STEPS:
+        if steps >= num_steps:
             continue
 
         for y, x in OFFSETS:
             next_plot_y = plot_y + y
             next_plot_x = plot_x + x
 
-            if not (0 <= next_plot_y < HEIGHT and 0 <= next_plot_x < WIDTH):
-                continue
-
-            if garden[next_plot_y][next_plot_x] == '#':
+            if garden[next_plot_y % HEIGHT][next_plot_x % WIDTH] == '#':
                 unreachable.add((next_plot_y, next_plot_x))
                 continue
 
@@ -86,7 +87,7 @@ def walk(garden, start):
             if next_coord in reachable or next_coord in unreachable:
                 continue
 
-            if (next_plot_y + next_plot_x) % 2:
+            if (next_plot_y + next_plot_x) % 2 != (num_steps % 2):
                 unreachable.add(next_coord)
             else:
                 reachable.update({next_coord: steps + 1})
@@ -96,14 +97,82 @@ def walk(garden, start):
     return reachable, unreachable
 
 
+def solve_quadratic(point1, point2, point3):
+    x1, y1 = point1
+    x2, y2 = point2
+    x3, y3 = point3
+
+    # a * x1^2 + b * x1 + c = y1
+    # a * x2^2 + b * x2 + c = y2
+    # a * x3^2 + b * x3 + c = y3
+    #
+    # y2 - y1 = (x2^2 - x1^2) * a + (x2 - x1) * b , so b = (-(x2^2 - x1^2) * a) / (x2 - x1) = ((x1^2 - x2^2) / (x2 - x1)) * a
+    # y3 - y2 = (x3^2 - x2^2) * a + (x3 - x2) * b = (x3^2 - x2^2) * a + (x3 - x2) * ((x1^2 - x2^2) / (x2 - x1)) * a
+    #         = a * ((x3^2 - x2^2) + ((x3 - x2) * ((x1^2 - x2^2) / (x2 - x1)))
+    # so a = (y3 - y2) / ((x3^2 - x2^2) + ((x3 - x2) * ((x1^2 - x2^2) / (x2 - x1))))
+    #
+    # d = y3 - y2
+    # e = x3^2 - x2^2
+    # f = x3 - x2
+    # g = x1^2 - x2^2
+    # h = x2 - x1
+    #
+    # a = d / (e + (f * (g / h)))
+    # b = (g / h) * a
+    # c = y1 - a * x1^2 - b * x1
+
+    d = y3 - y2
+    e = (x3 ** 2) - (x2 ** 2)
+    f = x3 - x2
+    g = (x1 ** 2) - (x2 ** 2)
+    h = x2 - x1
+
+    a = d / (e + (f * (g / h)))
+    b = (g / h) * a
+    c = y1 - (a * (x1 ** 2)) - (b * x1)
+
+    return a, b, c
+
+
 def part1(inputs):
-    garden,start = parse_input(inputs)
-    reachable, unreachable = walk(garden, start)
+    NUM_STEPS = PART_1_NUM_STEPS_TESTING if TESTING else PART_1_NUM_STEPS
+
+    garden, start = parse_input(inputs)
+    reachable, unreachable = walk(garden, start, NUM_STEPS)
     return len(reachable)
 
 
 def part2(inputs):
-    return
+    NUM_STEPS = PART_2_NUM_STEPS_TESTING if TESTING else PART_2_NUM_STEPS
+
+    garden, start = parse_input(inputs)
+    start_y = start[0]
+
+    # Get first three values to solve polynomial equation
+    reachable, unreachable = walk(garden, start, start_y)
+    num_reachable_1 = len(reachable)
+    log(f"{num_reachable_1} with {start_y} steps")
+
+    reachable, unreachable = walk(garden, start, start_y + len(garden))
+    num_reachable_2 = len(reachable)
+    log(f"{num_reachable_2} with {start_y + len(garden)} steps")
+
+    reachable, unreachable = walk(garden, start, start_y + (2 * len(garden)))
+    num_reachable_3 = len(reachable)
+    log(f"{num_reachable_3} with {start_y + 2 * len(garden)} steps")
+
+    # a, b, c = solve_quadratic((start_y, num_reachable_1),
+    #                           (start_y + len(garden), num_reachable_2),
+    #                           (start_y + (2 * len(garden)), num_reachable_3))
+
+    a, b, c = solve_quadratic((0, num_reachable_1),
+                              (1, num_reachable_2),
+                              (2, num_reachable_3))
+
+    max_range = NUM_STEPS // len(garden)
+
+    # return (a * (NUM_STEPS ** 2)) + (b * NUM_STEPS) + c
+    return (a * (max_range ** 2)) + (b * max_range) + c
 
 
 def run_tests():
