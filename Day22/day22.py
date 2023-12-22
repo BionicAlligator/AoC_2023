@@ -1,7 +1,8 @@
 import re
+from copy import deepcopy
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 
@@ -159,6 +160,29 @@ def extract_disintegrable_blocks(blocks):
     return disintegrable_blocks
 
 
+def analyse_chain_reactions(blocks, disintegrable_blocks):
+    total_falling_blocks = 0
+
+    for block in blocks[1:]:
+        if block in disintegrable_blocks:
+            continue
+
+        will_fall = set([block])
+        to_check = set(block.supports)
+
+        while to_check:
+            check_block = to_check.pop()
+
+            if all(b in will_fall for b in check_block.supporting_blocks):
+                will_fall.add(check_block)
+                to_check.update(set(check_block.supports))
+
+        # The -1 is to account for the disintegrated block (which doesn't actually fall)
+        total_falling_blocks += len(will_fall) - 1
+
+    return total_falling_blocks
+
+
 def part1(inputs):
     blocks, floor = parse_input(inputs)
     settle(blocks)
@@ -167,7 +191,10 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    blocks, floor = parse_input(inputs)
+    settle(blocks)
+    disintegrable_blocks = extract_disintegrable_blocks(blocks)
+    return analyse_chain_reactions(blocks, disintegrable_blocks)
 
 
 def run_tests():
