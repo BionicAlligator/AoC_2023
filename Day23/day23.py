@@ -1,3 +1,4 @@
+# TODO: Make this faster.  Perhaps pre-reduce the node list rather than doing it only when a node is first encountered?
 from collections import deque
 
 TESTING = False
@@ -19,35 +20,35 @@ class Node:
     def __str__(self):
         return f"({self.x}, {self.y})"
 
-    def link(self, nodes_by_coord):
-        # if self.desc in OFFSETS:
-        #     offset_y, offset_x = OFFSETS[self.desc]
-        #     neighbour_coord = (self.y + offset_y, self.x + offset_x)
-        #     self.neighbours = [nodes_by_coord[neighbour_coord]]
-        # else:
-        for neighbour_coord in self.neighbour_coords:
+    def link(self, nodes_by_coord, slippery_slopes=True):
+        if slippery_slopes and self.desc in OFFSETS:
+            offset_y, offset_x = OFFSETS[self.desc]
+            neighbour_coord = (self.y + offset_y, self.x + offset_x)
             self.neighbours.update({nodes_by_coord[neighbour_coord]: 1})
+        else:
+            for neighbour_coord in self.neighbour_coords:
+                self.neighbours.update({nodes_by_coord[neighbour_coord]: 1})
 
     def add_shortcut(self, neighbour):
         dest = neighbour
         prev = self
 
-        nodes_on_route = []
+        path_increment = self.neighbours.pop(dest)
 
         while len(dest.neighbours) == 2:
-            nodes_on_route.append(dest)
+            dest.neighbours.pop(prev)
+            (next_node, _), = dest.neighbours.items()
 
-            path_length_to_dest = self.neighbours.pop(dest)
-
-            next_neighbour = [{node: path_length + path_length_to_dest}
-                               for node, path_length in dest.neighbours.items()
-                               if node != prev][0]
-
-            self.neighbours.update(next_neighbour)
             prev = dest
-            dest, path_increment = next_neighbour.popitem()
+            dest = next_node
 
-        return dest, path_increment, nodes_on_route
+            path_increment += prev.neighbours.pop(dest)
+
+        self.neighbours.update({next_node: path_increment})
+        next_node.neighbours.pop(prev, None)
+        next_node.neighbours.update({self: path_increment})
+
+        return next_node, path_increment
 
 
 def log(message, end="\n"):
@@ -82,7 +83,7 @@ def read_input(filename):
     return lines
 
 
-def parse_input(grid):
+def parse_input(grid, slippery_slopes=True):
     nodes_by_coord = {}
 
     for y, row in enumerate(grid):
@@ -96,13 +97,15 @@ def parse_input(grid):
                 neighbour_y = y + offset_y
                 neighbour_x = x + offset_x
 
-                if 0 <= neighbour_y < len(grid) and 0 <= neighbour_x < len(row) and grid[neighbour_y][neighbour_x] != '#':
+                if (0 <= neighbour_y < len(grid) and
+                        0 <= neighbour_x < len(row) and
+                        grid[neighbour_y][neighbour_x] != '#'):
                     neighbour_coords.append((neighbour_y, neighbour_x))
 
             nodes_by_coord.update({(y, x): Node((y, x), desc, neighbour_coords)})
 
     for node in nodes_by_coord.values():
-        node.link(nodes_by_coord)
+        node.link(nodes_by_coord, slippery_slopes)
 
     start_node = nodes_by_coord[(0, 1)]
     end_node = nodes_by_coord[(len(grid) - 1, len(grid[0]) - 2)]
@@ -132,46 +135,26 @@ def find_longest_path(current, end):
             if neighbour in path:
                 continue
 
-            new_path = path.copy()
-
             if len(neighbour.neighbours) == 2:
-                neighbour, path_increment, nodes_on_route = current.add_shortcut(neighbour)
-                new_path.extend(nodes_on_route)
+                neighbour, path_increment = current.add_shortcut(neighbour)
 
-            new_path.append(neighbour)
-
-            to_check.append((steps + path_increment, neighbour, new_path))
+            if neighbour not in path:
+                new_path = path.copy()
+                new_path.append(neighbour)
+                to_check.append((steps + path_increment, neighbour, new_path))
 
     return longest_path_length, longest_path
 
 
-def display_path(grid, path):
-    node_coords = []
-
-    for node in path:
-        node_coords.append((node.y, node.x))
-
-    for y, row in enumerate(grid):
-        for x, desc in enumerate(row):
-            if (y, x) in node_coords:
-                log(".", end="")
-            elif desc in ".<>v^":
-                log(" ", end="")
-            else:
-                log(desc, end="")
-
-        log("")
-
-
 def part1(inputs):
     nodes, start_node, end_node = parse_input(inputs)
-    return find_longest_path(start_node, end_node)
+    longest_path_length, longest_path = find_longest_path(start_node, end_node)
+    return longest_path_length
 
 
 def part2(inputs):
-    nodes, start_node, end_node = parse_input(inputs)
+    nodes, start_node, end_node = parse_input(inputs, False)
     longest_path_length, longest_path = find_longest_path(start_node, end_node)
-    display_path(inputs, longest_path)
     return longest_path_length
 
 
