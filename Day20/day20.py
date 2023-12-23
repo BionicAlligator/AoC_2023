@@ -1,13 +1,18 @@
 from collections import deque
+from math import lcm
 
-TESTING = False
-PART = 1
+TESTING = True
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 LOW = 0
 HIGH = 1
 
 MODULE_TYPES = {'%': "flip-flop", "&": "conjunction"}
+
+OUTPUT_NAME = "output" if TESTING and PART != 2 else "rx"
+
+BUTTON_PRESS_NUM = 0
 
 
 class PulseTracker:
@@ -47,11 +52,7 @@ class Module:
 
     def link(self, modules):
         for dest_name in self.destination_module_names:
-            if dest_name in modules:
-                module = modules[dest_name]
-            else:
-                module = Output(self.pulse_tracker, dest_name, [])
-
+            module = modules[dest_name]
             self.destination_modules.add(module)
             module.connect(self)
 
@@ -62,9 +63,21 @@ class Module:
 class Output(Module):
     def __init__(self, pulse_tracker, name, destination_module_names):
         super().__init__(pulse_tracker, name, destination_module_names)
+        self.low_pulse_received = False
+        self.high_pulse_received_at = []
 
     def receive(self, source, pulse):
-        pass
+        global BUTTON_PRESS_NUM
+
+        if pulse == LOW:
+            self.low_pulse_received = True
+            if self.name == 'rx':
+                log(f"Module {self.name} received low pulse")
+        else:
+            self.high_pulse_received_at.append(BUTTON_PRESS_NUM)
+
+            if self.name != 'rx':
+                log(f"Module {self.name} received high pulse after {BUTTON_PRESS_NUM} presses")
 
     def transmit(self, pulse):
         pass
@@ -75,6 +88,9 @@ class Button(Module):
         super().__init__(pulse_tracker, name, destination_module_names)
 
     def push(self):
+        global BUTTON_PRESS_NUM
+
+        BUTTON_PRESS_NUM += 1
         self.receive(self, LOW)
 
 
@@ -157,7 +173,12 @@ def read_input(filename):
 
 
 def parse_input(inputs, pulse_tracker):
-    modules = {}
+    modules = {OUTPUT_NAME: Output(pulse_tracker, OUTPUT_NAME, []),
+               'ajg_jx': Output(pulse_tracker, 'ajg_jx', []),
+               'ajg_tt': Output(pulse_tracker, 'ajg_tt', []),
+               'ajg_cq': Output(pulse_tracker, 'ajg_cq', []),
+               'ajg_qz': Output(pulse_tracker, 'ajg_qz', [])}
+
     broadcaster = None
 
     for line in inputs:
@@ -197,7 +218,30 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    pulse_tracker = PulseTracker()
+    modules, broadcaster = parse_input(inputs, pulse_tracker)
+    button = Button(pulse_tracker, "button", ["broadcaster"])
+    button.link(modules)
+
+    rx = modules['rx']
+    ajg_jx = modules['ajg_jx']
+    ajg_tt = modules['ajg_tt']
+    ajg_cq = modules['ajg_cq']
+    ajg_qz = modules['ajg_qz']
+
+    while not rx.low_pulse_received:
+        button.push()
+
+        if all([len(ajg_jx.high_pulse_received_at) > 4, len(ajg_tt.high_pulse_received_at) > 4,
+                len(ajg_cq.high_pulse_received_at) > 4, len(ajg_qz.high_pulse_received_at) > 4]):
+            log(f"{ajg_jx.high_pulse_received_at=}\n{ajg_tt.high_pulse_received_at=}\n"
+                f"{ajg_cq.high_pulse_received_at=}\n{ajg_qz.high_pulse_received_at=}")
+
+            log(f"LCM: {lcm(ajg_jx.high_pulse_received_at[0], ajg_tt.high_pulse_received_at[0],
+                            ajg_cq.high_pulse_received_at[0], ajg_qz.high_pulse_received_at[0])}")
+            break
+
+    return BUTTON_PRESS_NUM
 
 
 def run_tests():
