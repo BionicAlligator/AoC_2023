@@ -1,3 +1,5 @@
+# TODO: Fix this - think I have a bug either in the way I am solving the quadratic formula, or in the way I am applying it afterwards
+
 import math
 from collections import deque
 
