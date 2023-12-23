@@ -1,18 +1,21 @@
 from collections import deque
 from math import lcm
 
-TESTING = True
+TESTING = False
 PART = 2
-OUTPUT_TO_CONSOLE = True
+OUTPUT_TO_CONSOLE = False
+
+WARM_UP_BUTTON_PRESSES = 1000
 
 LOW = 0
 HIGH = 1
 
 MODULE_TYPES = {'%': "flip-flop", "&": "conjunction"}
 
-OUTPUT_NAME = "output" if TESTING and PART != 2 else "rx"
+OUTPUTS = ["output", "rx", "ajg_jx", "ajg_tt", "ajg_cq", "ajg_qz"]
+KEY_CONJUNCTION_MONITORS = ["ajg_jx", "ajg_tt", "ajg_cq", "ajg_qz"]
 
-BUTTON_PRESS_NUM = 0
+button_press_num = 0
 
 
 class PulseTracker:
@@ -64,20 +67,23 @@ class Output(Module):
     def __init__(self, pulse_tracker, name, destination_module_names):
         super().__init__(pulse_tracker, name, destination_module_names)
         self.low_pulse_received = False
-        self.high_pulse_received_at = []
+        self.first_high_pulse_button_press_num = 0
 
     def receive(self, source, pulse):
-        global BUTTON_PRESS_NUM
+        global button_press_num
 
         if pulse == LOW:
             self.low_pulse_received = True
+
             if self.name == 'rx':
                 log(f"Module {self.name} received low pulse")
         else:
-            self.high_pulse_received_at.append(BUTTON_PRESS_NUM)
+            self.first_high_pulse_button_press_num = button_press_num \
+                if not self.first_high_pulse_button_press_num \
+                else self.first_high_pulse_button_press_num
 
-            if self.name != 'rx':
-                log(f"Module {self.name} received high pulse after {BUTTON_PRESS_NUM} presses")
+            if self.name in KEY_CONJUNCTION_MONITORS:
+                log(f"Module {self.name} received high pulse after {button_press_num} presses")
 
     def transmit(self, pulse):
         pass
@@ -88,9 +94,9 @@ class Button(Module):
         super().__init__(pulse_tracker, name, destination_module_names)
 
     def push(self):
-        global BUTTON_PRESS_NUM
+        global button_press_num
 
-        BUTTON_PRESS_NUM += 1
+        button_press_num += 1
         self.receive(self, LOW)
 
 
@@ -172,12 +178,17 @@ def read_input(filename):
     return lines
 
 
+def create_output_modules(pulse_tracker):
+    outputs = {}
+
+    for output_name in OUTPUTS:
+        outputs.update({output_name: Output(pulse_tracker, output_name, [])})
+
+    return outputs
+
+
 def parse_input(inputs, pulse_tracker):
-    modules = {OUTPUT_NAME: Output(pulse_tracker, OUTPUT_NAME, []),
-               'ajg_jx': Output(pulse_tracker, 'ajg_jx', []),
-               'ajg_tt': Output(pulse_tracker, 'ajg_tt', []),
-               'ajg_cq': Output(pulse_tracker, 'ajg_cq', []),
-               'ajg_qz': Output(pulse_tracker, 'ajg_qz', [])}
+    modules = create_output_modules(pulse_tracker)
 
     broadcaster = None
 
@@ -205,43 +216,51 @@ def parse_input(inputs, pulse_tracker):
     return modules, broadcaster
 
 
+def install_key_conjunction_monitors(modules, key_conjunction_monitors):
+    for module in modules.values():
+        if ('ajg_' + module.name) in key_conjunction_monitors:
+            monitor = key_conjunction_monitors['ajg_' + module.name]
+            module.destination_modules.add(monitor)
+            monitor.connect(module)
+
+
 def part1(inputs):
     pulse_tracker = PulseTracker()
     modules, broadcaster = parse_input(inputs, pulse_tracker)
     button = Button(pulse_tracker, "button", ["broadcaster"])
     button.link(modules)
 
-    for push in range(1000):
+    for push in range(WARM_UP_BUTTON_PRESSES):
         button.push()
 
     return pulse_tracker.pulse_product()
 
 
 def part2(inputs):
+    global button_press_num
+    button_press_num = 0
+
     pulse_tracker = PulseTracker()
     modules, broadcaster = parse_input(inputs, pulse_tracker)
     button = Button(pulse_tracker, "button", ["broadcaster"])
     button.link(modules)
 
     rx = modules['rx']
-    ajg_jx = modules['ajg_jx']
-    ajg_tt = modules['ajg_tt']
-    ajg_cq = modules['ajg_cq']
-    ajg_qz = modules['ajg_qz']
 
-    while not rx.low_pulse_received:
+    key_conjunction_monitors = {module_name: modules[module_name] for module_name in KEY_CONJUNCTION_MONITORS}
+    install_key_conjunction_monitors(modules, key_conjunction_monitors)
+
+    while not all(monitor.first_high_pulse_button_press_num > 0 for monitor in key_conjunction_monitors.values()):
+        if rx.low_pulse_received:
+            return button_press_num
+
         button.push()
 
-        if all([len(ajg_jx.high_pulse_received_at) > 4, len(ajg_tt.high_pulse_received_at) > 4,
-                len(ajg_cq.high_pulse_received_at) > 4, len(ajg_qz.high_pulse_received_at) > 4]):
-            log(f"{ajg_jx.high_pulse_received_at=}\n{ajg_tt.high_pulse_received_at=}\n"
-                f"{ajg_cq.high_pulse_received_at=}\n{ajg_qz.high_pulse_received_at=}")
+    required_button_presses = lcm(*(monitor.first_high_pulse_button_press_num
+                                    for monitor in key_conjunction_monitors.values()))
 
-            log(f"LCM: {lcm(ajg_jx.high_pulse_received_at[0], ajg_tt.high_pulse_received_at[0],
-                            ajg_cq.high_pulse_received_at[0], ajg_qz.high_pulse_received_at[0])}")
-            break
-
-    return BUTTON_PRESS_NUM
+    log(f"{required_button_presses=}")
+    return required_button_presses
 
 
 def run_tests():
