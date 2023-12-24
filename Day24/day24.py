@@ -208,11 +208,11 @@ def part2(inputs):
 
     solver.check()
 
-    rock_position = [solver.model()[rock_pos_x].as_long(),
-                     solver.model()[rock_pos_y].as_long(),
-                     solver.model()[rock_pos_z].as_long()]
+    rock_starting_position = (solver.model()[rock_pos_x].as_long(),
+                              solver.model()[rock_pos_y].as_long(),
+                              solver.model()[rock_pos_z].as_long())
 
-    return sum(rock_position)
+    return sum(rock_starting_position)
 
 
 def run_tests():
