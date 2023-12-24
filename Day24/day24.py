@@ -1,7 +1,8 @@
 from shapely import LineString, intersection
+import z3
 
 TESTING = False
-PART = 1
+PART = 2
 OUTPUT_TO_CONSOLE = True
 
 if PART == 1 and TESTING:
@@ -16,13 +17,15 @@ Z = 2
 START = 0
 END = 1
 
+IGNORE_Z_AXIS = True
+
 
 class Hailstone:
     def __init__(self, position, velocity):
         self.position = position
         self.velocity = velocity
 
-        if PART == 1:
+        if IGNORE_Z_AXIS:
             self.position[Z] = 0
             self.velocity[Z] = 0
 
@@ -182,7 +185,34 @@ def part1(inputs):
 
 
 def part2(inputs):
-    return
+    global IGNORE_Z_AXIS
+    IGNORE_Z_AXIS = False
+
+    hailstones = parse_input(inputs)
+
+    rock_pos_x, rock_pos_y, rock_pos_z, rock_vel_x, rock_vel_y, rock_vel_z = (
+        z3.Reals("rock_pos_x rock_pos_y rock_pos_z rock_vel_x rock_vel_y rock_vel_z"))
+
+    solver = z3.Solver()
+
+    for hailstone_num, hailstone in enumerate(hailstones[:3]):
+        collision_time = z3.Real(f"collision_time_{hailstone_num}")
+
+        solver.add(collision_time > 0)
+        solver.add(rock_pos_x + (collision_time * rock_vel_x) ==
+                   hailstone.position[X] + (collision_time * hailstone.velocity[X]))
+        solver.add(rock_pos_y + (collision_time * rock_vel_y) ==
+                   hailstone.position[Y] + (collision_time * hailstone.velocity[Y]))
+        solver.add(rock_pos_z + (collision_time * rock_vel_z) ==
+                   hailstone.position[Z] + (collision_time * hailstone.velocity[Z]))
+
+    solver.check()
+
+    rock_position = [solver.model()[rock_pos_x].as_long(),
+                     solver.model()[rock_pos_y].as_long(),
+                     solver.model()[rock_pos_z].as_long()]
+
+    return sum(rock_position)
 
 
 def run_tests():
