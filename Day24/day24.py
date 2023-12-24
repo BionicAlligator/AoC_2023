@@ -4,13 +4,10 @@ TESTING = False
 PART = 1
 OUTPUT_TO_CONSOLE = True
 
-if PART == 1:
-    if TESTING:
-        TEST_SPACE = ((7, 7, 0), (27, 27, 0))
-    else:
-        TEST_SPACE = ((200000000000000, 200000000000000, 0), (400000000000000, 400000000000000, 0))
+if PART == 1 and TESTING:
+    TEST_SPACE = ((7, 7, 0), (27, 27, 0))
 else:
-    TEST_SPACE = ((0, 0, 0), (0, 0, 0))
+    TEST_SPACE = ((200000000000000, 200000000000000, 0), (400000000000000, 400000000000000, 0))
 
 X = 0
 Y = 1
@@ -101,12 +98,6 @@ class Hailstone:
 
         return LineString([(start_pos_x, start_pos_y, start_pos_z), (end_pos_x, end_pos_y, end_pos_z)])
 
-    def coincident_in_test_space(self, other_hailstone):
-        if not overlaps(self.time_in_test_space, other_hailstone.time_in_test_space):
-            return False
-
-        return True
-
     def intersects_in_2d_with(self, other_hailstone):
         return intersection(self.path_through_test_space, other_hailstone.path_through_test_space)
 
@@ -165,77 +156,29 @@ def overlaps(range_1, range_2):
     return False
 
 
-def determine_incidence(hailstones, test_space):
-    log(f"Pre-filter: {len(hailstones)}")
+def determine_potential_collisions(hailstones, test_space):
+    log(f"Before temporal filtering: {len(hailstones)}")
     filtered_hailstones = []
 
     for hailstone in hailstones:
         if hailstone.enters_test_space_in_future:
             filtered_hailstones.append(hailstone)
 
-    log(f"Pre-coincidence: {len(filtered_hailstones)}")
-    coincident_in_test_space = []
+    log(f"Before collision detection: {len(filtered_hailstones)}")
+    future_potential_collisions = []
 
     for hailstone_num, hailstone1 in enumerate(filtered_hailstones):
         for hailstone2 in filtered_hailstones[hailstone_num + 1:]:
-            # if hailstone1.coincident_in_test_space(hailstone2):
-                coincident_in_test_space.append((hailstone1, hailstone2))
-
-    log(f"Pre-collision: {len(coincident_in_test_space)}")
-    future_potential_collisions = []
-
-    for hailstone1, hailstone2 in coincident_in_test_space:
-        if hailstone1.intersects_in_2d_with(hailstone2):
-            future_potential_collisions.append((hailstone1, hailstone2))
+            if hailstone1.intersects_in_2d_with(hailstone2):
+                future_potential_collisions.append((hailstone1, hailstone2))
 
     return future_potential_collisions
 
 
-def compare_collisions(future_potential_collisions):
-    other_cols = []
-
-    with open('collisions.txt', 'r') as file:
-        lines = [line.rstrip() for line in file]
-
-    for line in lines:
-        h1, h2 = line.split(" # ")
-
-        pos1, vel1 = h1.split(" @ ")
-        position1 = list(map(int, pos1.split(", ")))
-        velocity1 = list(map(int, vel1.split(", ")))
-
-        pos2, vel2 = h2.split(" @ ")
-        position2 = list(map(int, pos2.split(", ")))
-        velocity2 = list(map(int, vel2.split(", ")))
-
-        other_cols.append(((position1, velocity1), (position2, velocity2)))
-
-    counter = 0
-
-    for h1, h2 in future_potential_collisions:
-        counter += 1
-
-        if counter % 100 == 0:
-            log(f"Done {counter}")
-
-        h1: Hailstone
-        h2: Hailstone
-
-        col = (h1.position, h1.velocity), (h2.position, h2.velocity)
-
-        if col in other_cols:
-            other_cols.remove(col)
-
-    log(f"{other_cols=}")
-
-
 def part1(inputs):
     hailstones = parse_input(inputs)
-    future_potential_collisions = determine_incidence(hailstones, TEST_SPACE)
-
-    # compare_collisions(future_potential_collisions)
-
-    return len(future_potential_collisions)
+    potential_collisions = determine_potential_collisions(hailstones, TEST_SPACE)
+    return len(potential_collisions)
 
 
 def part2(inputs):
