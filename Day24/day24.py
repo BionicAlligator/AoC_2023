@@ -1,3 +1,13 @@
+# TODO: Part 2 should be solvable as follows:
+# Find pairs of parallel hailstone trajectories (where paths don't intersect)
+# A pair of parallel trajectories can be used to determine a plane along which the rock must fly
+# Two different planes (e.g: from two pairs of parallel hailstone paths) can be intersected to
+#   give the line along which the rock must travel
+# Two points on this line are where two of the hailstones intersect with it
+# Use these points to determine the time at which each hailstone intersects the line (and is hit by the rock)
+# Use the differences in times and positions to determine the velocity of the rock
+# Track back in time from one of the points to determine the rock's starting point (at t=0)
+
 from shapely import LineString, intersection
 import z3
 
